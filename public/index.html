@@ -1,0 +1,2413 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111318" />
+    <meta
+      name="description"
+      content="Cater ERP operations workspace for contracts, procurement, inventory, kitchen production, and consumption analysis."
+    />
+    <title>Cater ERP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    />
+    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="/css/theme.css" />
+  </head>
+  <body class="signed-out">
+    <a class="skip-link" href="#workspace">Skip to main content</a>
+    <div class="app-frame">
+      <button
+        class="sidebar-scrim"
+        id="sidebar-scrim"
+        type="button"
+        aria-label="Close navigation"
+      ></button>
+      <aside class="sidebar" id="app-sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <div class="brand-mark">C</div>
+          <div>
+            <h1>Cater</h1>
+            <p class="brand-subtitle">Operations</p>
+          </div>
+        </div>
+
+        <nav class="nav" id="nav"></nav>
+
+      </aside>
+
+      <main class="workspace-shell">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button
+              type="button"
+              class="topbar-menu-btn"
+              id="sidebar-menu-btn"
+              aria-label="Open navigation"
+              aria-expanded="false"
+              aria-controls="app-sidebar"
+            >
+              <span aria-hidden="true">&#9776;</span>
+            </button>
+            <div class="topbar-title-stack">
+              <p class="eyebrow" id="page-kicker">Authentication</p>
+              <h2 id="page-title">Sign in</h2>
+              <p class="page-copy" id="page-copy"></p>
+            </div>
+            <label class="topbar-search">
+              <span class="topbar-search-icon" aria-hidden="true">&#8981;</span>
+              <input
+                type="search"
+                id="global-search"
+                aria-label="Search current workspace"
+                placeholder="Search this workspace"
+                autocomplete="off"
+              />
+            </label>
+          </div>
+
+          <div class="topbar-meta">
+            <div class="system-status" aria-label="System status">
+              <span class="pill neutral" id="health-pill">API</span>
+              <span class="pill neutral" id="db-pill">Database</span>
+            </div>
+            <button
+              type="button"
+              class="topbar-icon-btn"
+              id="refresh-all-btn"
+              title="Refresh"
+              aria-label="Refresh all live data"
+            >
+              <span aria-hidden="true">&#8635;</span>
+            </button>
+            <button
+              type="button"
+              class="topbar-icon-btn topbar-notify-btn"
+              aria-label="Open recent activity"
+              title="Recent activity"
+            >
+              <span aria-hidden="true">&#9673;</span>
+              <span class="notify-badge hidden">0</span>
+            </button>
+            <button
+              type="button"
+              class="topbar-icon-btn"
+              id="help-btn"
+              title="Help"
+              aria-label="Open workspace help"
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              class="topbar-icon-btn"
+              id="theme-btn"
+              title="Switch to dark mode"
+              aria-label="Switch to dark mode"
+            >
+              <span aria-hidden="true">☾</span>
+            </button>
+            <div class="user-menu" id="user-menu">
+              <button
+                type="button"
+                class="user-menu-btn"
+                id="user-menu-btn"
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                <span class="session-avatar" id="topbar-avatar">CE</span>
+                <span class="user-menu-copy">
+                  <strong id="topbar-user-name">Signed out</strong>
+                  <span id="topbar-user-role">Admin</span>
+                </span>
+              </button>
+              <div class="user-menu-panel" role="menu">
+                <button type="button" id="user-menu-theme" role="menuitem">
+                  Toggle theme
+                </button>
+                <button type="button" id="user-menu-settings" role="menuitem">
+                  Settings
+                </button>
+                <button type="button" id="user-menu-logout" role="menuitem">
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <section id="login-section" class="login-shell">
+          <article class="login-hero" hidden></article>
+          <article class="login-auth-shell">
+            <div class="login-auth-center">
+              <article class="login-card">
+                <div class="login-brand-inline">
+                  <div class="login-brand-mark">C</div>
+                  <div>
+                    <div class="login-brand-title">Cater</div>
+                    <div class="login-brand-subtitle">
+                      Contract catering operations
+                    </div>
+                  </div>
+                </div>
+                <div class="login-card-header">
+                  <h3>Sign in</h3>
+                  <p>Use your workspace credentials to continue.</p>
+                </div>
+
+                <form id="login-form" class="login-form">
+                  <label class="auth-label">
+                    <span>Username or email</span>
+                    <div class="input-shell">
+                      <input
+                        name="username"
+                        placeholder="Your username"
+                        autocomplete="username"
+                        required
+                      />
+                    </div>
+                  </label>
+
+                  <label class="auth-label">
+                    <div class="password-row">
+                      <span>Password</span>
+                      <a href="mailto:admin@cater.local" class="inline-link"
+                        >Forgot password?</a
+                      >
+                    </div>
+                    <div class="input-shell">
+                      <input
+                        name="password"
+                        type="password"
+                        placeholder="Password"
+                        autocomplete="current-password"
+                        required
+                      />
+                      <button
+                        class="password-toggle"
+                        type="button"
+                        aria-label="Show password"
+                      >
+                        Show
+                      </button>
+                    </div>
+                  </label>
+
+                  <button type="submit" class="sign-in-btn">Sign in</button>
+                </form>
+
+                <div class="hint">
+                  Seeded local access: <code>admin / admin123</code>
+                </div>
+                <div class="form-status" id="login-status"></div>
+              </article>
+
+              <div class="login-support">
+                Need access?
+                <a href="mailto:admin@cater.local" class="support-link"
+                  >Contact your administrator.</a
+                >
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="workspace" class="hidden" tabindex="-1">
+          <section class="module" data-module="dashboard">
+            <div class="page-header dashboard-intro">
+              <div>
+                <h1 id="dashboard-greeting">Operations overview</h1>
+                <p class="page-meta">
+                  <time id="dashboard-date-chip">Today</time>
+                </p>
+              </div>
+              <div class="dashboard-toolbar">
+                <button
+                  class="ghost-btn slim-btn"
+                  data-nav-target="reports"
+                  type="button"
+                >
+                  View reports
+                </button>
+              </div>
+            </div>
+            <div
+              class="metric-grid dashboard-metric-grid stat-strip"
+              id="dashboard-metrics"
+            ></div>
+            <div class="dashboard-grid ops-split">
+              <article class="panel dashboard-panel">
+                <div class="panel-header">
+                  <h3>Work requiring attention</h3>
+                </div>
+                <div class="attention-board" id="dashboard-attention"></div>
+                <div id="dashboard-production-summary"></div>
+              </article>
+              <article class="panel dashboard-panel">
+                <div class="panel-header">
+                  <h3>Stock to review</h3>
+                  <button
+                    class="ghost-btn compact-ghost-btn"
+                    type="button"
+                    data-nav-target="inventory"
+                    data-nav-tab="alerts"
+                  >
+                    All alerts →
+                  </button>
+                </div>
+                <div id="dashboard-stock-exceptions"></div>
+              </article>
+            </div>
+            <article class="panel dashboard-table-panel">
+              <div class="panel-header">
+                <h3>Active delivery commitments</h3>
+                <button
+                  class="ghost-btn compact-ghost-btn"
+                  type="button"
+                  data-nav-target="contracts"
+                >
+                  View contracts →
+                </button>
+              </div>
+              <div id="dashboard-upcoming-deliveries"></div>
+            </article>
+            <div class="dashboard-grid ops-split">
+              <article class="panel dashboard-panel">
+                <div class="panel-header">
+                  <h3>Recent activity</h3>
+                  <button
+                    class="ghost-btn compact-ghost-btn"
+                    type="button"
+                    data-nav-target="settings"
+                    data-nav-tab="audit"
+                  >
+                  Audit trail →
+                  </button>
+                </div>
+                <div id="dashboard-activities"></div>
+              </article>
+              <article class="panel dashboard-panel">
+                <div class="panel-header">
+                  <h3>Supplier balances</h3>
+                  <button
+                    class="ghost-btn compact-ghost-btn"
+                    type="button"
+                    data-nav-target="suppliers"
+                  >
+                    All suppliers →
+                  </button>
+                </div>
+                <p class="workspace-copy">
+                  Up to five suppliers, highest outstanding balance first.
+                </p>
+                <div id="dashboard-supplier-balances" class="stack-space"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="approvals">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="approvals-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="panel-header approval-queue-header">
+                  <div>
+                    <p class="eyebrow">Action required</p>
+                    <h2>Pending approvals</h2>
+                    <p class="workspace-copy">
+                      Review requests assigned to you. Approve or reject without opening each module.
+                    </p>
+                  </div>
+                  <button
+                    class="ghost-btn slim-btn"
+                    data-load="approvals"
+                    type="button"
+                  >
+                    Refresh queue
+                  </button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="approvals"
+                      placeholder="Search pending approvals..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="approvals"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                <div id="approvals-queue" aria-live="polite"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="contracts">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="contracts-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    All Contracts
+                  </button>
+                  <button type="button" class="module-tab">Active</button>
+                  <button type="button" class="module-tab">Expiring</button>
+                  <button type="button" class="module-tab">Suspended</button>
+                  <button type="button" class="module-tab">Expired</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="contracts"
+                      placeholder="Search contracts..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="contracts"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-export-module="contracts"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+                <div id="contracts-table"></div>
+              </article>
+
+              <div class="three-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Client Setup</p>
+                      <h3>Clients</h3>
+                    </div>
+                  </div>
+                  <form id="client-form" class="grid-form">
+                    <input name="id" type="hidden" />
+                    <label>Name<input name="name" required /></label>
+                    <label>Contact Person<input name="contactPerson" /></label>
+                    <label>Phone<input name="phone" /></label>
+                    <label>Email<input name="email" type="email" /></label>
+                    <label class="full-span"
+                      >Address<textarea name="address"></textarea>
+                    </label>
+                    <button type="submit">Save Client</button>
+                  </form>
+                  <div id="clients-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Locations</p>
+                      <h3>Delivery Locations</h3>
+                    </div>
+                  </div>
+                  <form id="client-location-form" class="grid-form">
+                    <label
+                      >Client<select
+                        name="clientId"
+                        id="location-client-select"
+                      ></select
+                    ></label>
+                    <label>Location Name<input name="name" required /></label>
+                    <label>Contact Person<input name="contactPerson" /></label>
+                    <label>Phone<input name="phone" /></label>
+                    <label class="full-span"
+                      >Address<textarea name="address"></textarea>
+                    </label>
+                    <label class="full-span"
+                      >Delivery Notes<textarea name="deliveryNotes"></textarea>
+                    </label>
+                    <button type="submit">Save Location</button>
+                  </form>
+                  <div id="active-contracts-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Contract Actions</p>
+                      <h3>Create or Update</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="contracts"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="contract-form" class="grid-form">
+                    <input name="id" type="hidden" />
+                    <input name="clientId" type="hidden" />
+                    <input name="clientLocationId" type="hidden" />
+                    <div class="full-span contract-workspace">
+                      <div
+                        class="contract-tab-strip"
+                        role="tablist"
+                        aria-label="Contract workspace sections"
+                      >
+                        <button
+                          type="button"
+                          class="contract-tab active"
+                          data-contract-tab="overview"
+                        >
+                          Client & Location
+                        </button>
+                        <button
+                          type="button"
+                          class="contract-tab"
+                          data-contract-tab="terms"
+                        >
+                          Terms
+                        </button>
+                        <button
+                          type="button"
+                          class="contract-tab"
+                          data-contract-tab="schedule"
+                        >
+                          Billing & Schedule
+                        </button>
+                        <button
+                          type="button"
+                          class="contract-tab hidden"
+                          data-contract-tab="custom-dates"
+                        >
+                          Custom Dates
+                        </button>
+                        <button
+                          type="button"
+                          class="contract-tab"
+                          data-contract-tab="items"
+                        >
+                          Contract Items
+                        </button>
+                      </div>
+
+                      <section
+                        class="contract-tab-panel active"
+                        data-contract-panel="overview"
+                      >
+                        <div class="contract-section-grid">
+                          <label class="full-span"
+                            >Client Name<input name="clientName" required
+                          /></label>
+                          <label
+                            >Client Contact Person<input
+                              name="clientContactPerson"
+                          /></label>
+                          <label
+                            >Client Phone<input name="clientPhone"
+                          /></label>
+                          <label
+                            >Client Email<input name="clientEmail" type="email"
+                          /></label>
+                          <label class="full-span"
+                            >Client Address<textarea
+                              name="clientAddress"
+                            ></textarea>
+                          </label>
+                          <label class="full-span"
+                            >Delivery Location Name<input
+                              name="locationName"
+                              required
+                          /></label>
+                          <label
+                            >Location Contact Person<input
+                              name="locationContactPerson"
+                          /></label>
+                          <label
+                            >Location Phone<input name="locationPhone"
+                          /></label>
+                          <label class="full-span"
+                            >Location Address<textarea
+                              name="locationAddress"
+                            ></textarea>
+                          </label>
+                          <label class="full-span"
+                            >Delivery Notes<textarea
+                              name="locationDeliveryNotes"
+                            ></textarea>
+                          </label>
+                        </div>
+                      </section>
+
+                      <section
+                        class="contract-tab-panel"
+                        data-contract-panel="terms"
+                      >
+                        <div class="contract-section-grid">
+                          <label
+                            >Start Date<input
+                              name="startDate"
+                              type="date"
+                              required
+                          /></label>
+                          <label
+                            >End Date<input name="endDate" type="date" required
+                          /></label>
+                          <label
+                            >Payment Terms<select
+                              name="paymentTermId"
+                              id="contract-payment-term-select"
+                            ></select
+                          ></label>
+                          <label
+                            >Delivery Type<select
+                              name="deliveryTypeId"
+                              id="contract-delivery-type-select"
+                            ></select
+                          ></label>
+                          <label
+                            >Price per Meal / Unit<input
+                              name="pricePerUnit"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value="0"
+                          /></label>
+                          <label
+                            >Expected Service Units<input
+                              name="expectedDailyQuantity"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value="0"
+                          /></label>
+                          <label class="full-span"
+                            >Notes<textarea name="notes"></textarea>
+                          </label>
+                        </div>
+                      </section>
+                      <section
+                        class="contract-tab-panel"
+                        data-contract-panel="schedule"
+                      >
+                        <div class="contract-section-grid">
+                          <label class="full-span">
+                            Billing Cycle
+                            <select name="billingCycle">
+                              <option value="Daily">Daily</option>
+                              <option value="Weekly">Weekly</option>
+                              <option value="Monthly" selected>Monthly</option>
+                              <option value="Custom">Custom</option>
+                            </select>
+                          </label>
+
+                          <div
+                            class="full-span contract-cycle-panel"
+                            data-contract-cycle-panel="daily"
+                          >
+                            <div class="contract-cycle-copy">
+                              <h4>Daily Contract</h4>
+                              <p>
+                                Select the weekdays when service repeats. This
+                                keeps daily contracts fast to enter without
+                                repeating rows.
+                              </p>
+                            </div>
+                            <div class="full-span contract-day-grid">
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Monday"
+                                  checked
+                                />Mon</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Tuesday"
+                                  checked
+                                />Tue</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Wednesday"
+                                  checked
+                                />Wed</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Thursday"
+                                  checked
+                                />Thu</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Friday"
+                                  checked
+                                />Fri</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Saturday"
+                                />Sat</label
+                              >
+                              <label class="contract-day-option"
+                                ><input
+                                  type="checkbox"
+                                  name="dailyDeliveryDays"
+                                  value="Sunday"
+                                />Sun</label
+                              >
+                            </div>
+                            <label
+                              >Delivery Time<input
+                                name="dailyDeliveryTime"
+                                placeholder="12:30 PM"
+                            /></label>
+                          </div>
+
+                          <div
+                            class="full-span contract-cycle-panel hidden"
+                            data-contract-cycle-panel="weekly"
+                          >
+                            <div class="contract-cycle-copy">
+                              <h4>Weekly Contract</h4>
+                              <p>
+                                Choose the recurring weekday for the weekly
+                                service.
+                              </p>
+                            </div>
+                            <label>
+                              Service Day
+                              <select name="weeklyDeliveryDay">
+                                <option value="1">Monday</option>
+                                <option value="2">Tuesday</option>
+                                <option value="3">Wednesday</option>
+                                <option value="4">Thursday</option>
+                                <option value="5">Friday</option>
+                                <option value="6">Saturday</option>
+                                <option value="0">Sunday</option>
+                              </select>
+                            </label>
+                            <label
+                              >Delivery Time<input
+                                name="weeklyDeliveryTime"
+                                placeholder="12:30 PM"
+                            /></label>
+                          </div>
+
+                          <div
+                            class="full-span contract-cycle-panel hidden"
+                            data-contract-cycle-panel="monthly"
+                          >
+                            <div class="contract-cycle-copy">
+                              <h4>Monthly Contract</h4>
+                              <p>
+                                Use one recurring calendar date for monthly
+                                billing or delivery.
+                              </p>
+                            </div>
+                            <label
+                              >Day of Month<input
+                                name="monthlyDeliveryDay"
+                                type="number"
+                                min="1"
+                                max="31"
+                                step="1"
+                                value="1"
+                            /></label>
+                            <label
+                              >Delivery Time<input
+                                name="monthlyDeliveryTime"
+                                placeholder="12:30 PM"
+                            /></label>
+                          </div>
+
+                          <div
+                            class="full-span contract-cycle-panel hidden"
+                            data-contract-cycle-panel="custom"
+                          >
+                            <div class="contract-cycle-copy">
+                              <h4>Custom Contract</h4>
+                              <p>
+                                Use exact service dates when the contract does
+                                not follow a fixed daily, weekly, or monthly
+                                rhythm.
+                              </p>
+                            </div>
+                            <div class="contract-custom-notice">
+                              Switch to the <strong>Custom Dates</strong> tab to
+                              add the exact dates and quantities.
+                            </div>
+                          </div>
+
+                          <textarea name="schedulesJson" hidden>[]</textarea>
+                        </div>
+                      </section>
+
+                      <section
+                        class="contract-tab-panel"
+                        data-contract-panel="custom-dates"
+                      >
+                        <div class="contract-section-grid">
+                          <div class="contract-cycle-copy full-span">
+                            <h4>Custom Dates</h4>
+                            <p>
+                              Add each exact contract date here when the billing
+                              cycle is set to Custom.
+                            </p>
+                          </div>
+                          <label class="full-span">
+                            Custom Contract Dates
+                            <textarea name="customDatesJson" rows="3">
+[]</textarea
+                            >
+                          </label>
+                        </div>
+                      </section>
+
+                      <section
+                        class="contract-tab-panel"
+                        data-contract-panel="items"
+                      >
+                        <div class="contract-section-grid">
+                          <div class="full-span contract-inline-actions">
+                            <button
+                              type="button"
+                              class="ghost-btn slim-btn"
+                              data-open-form="product-form"
+                              data-reset-form="true"
+                              data-form-title="New Product for Contract Items"
+                            >
+                              Define Product
+                            </button>
+                            <p class="hint">
+                              Create a product here first, then pick it from the
+                              Contract Items dropdown below.
+                            </p>
+                          </div>
+                          <label class="full-span">
+                            Contract Items
+                            <textarea name="itemsJson" rows="4">
+[{"productId":1,"serviceUnit":"Meal","quantityPerDelivery":50,"unitPrice":15000}]</textarea
+                            >
+                          </label>
+                        </div>
+                      </section>
+                    </div>
+                    <button type="submit">Save Contract</button>
+                  </form>
+                  <form
+                    id="contract-status-form"
+                    class="grid-form compact-form stack-space"
+                  >
+                    <label
+                      >Contract ID<input
+                        name="contractId"
+                        type="number"
+                        min="1"
+                        required
+                    /></label>
+                    <label>
+                      Action
+                      <select name="action">
+                        <option value="activate">Activate</option>
+                        <option value="suspend">Suspend</option>
+                        <option value="expire">Expire</option>
+                      </select>
+                    </label>
+                    <button type="submit">Apply</button>
+                  </form>
+                </article>
+              </div>
+
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="procurement">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="procurement-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Purchase Requisitions
+                  </button>
+                  <button type="button" class="module-tab">
+                    Purchase Orders
+                  </button>
+                  <button type="button" class="module-tab">
+                    Goods Received
+                  </button>
+                  <button type="button" class="module-tab">Suppliers</button>
+                  <button type="button" class="module-tab">Invoices</button>
+                  <button type="button" class="module-tab">Cash Requisitions</button>
+                  <button type="button" class="module-tab">Payment Vouchers</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="procurement"
+                      placeholder="Search requisitions..."
+                    />
+                    <select
+                      data-purchase-type-filter="procurement"
+                      aria-label="Filter purchases by type"
+                    >
+                      <option value="">All purchase types</option>
+                      <option value="Daily">Daily Purchase</option>
+                      <option value="Weekly">Weekly Purchase</option>
+                    </select>
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="procurement"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="refresh-btn"
+                      data-focus-form="purchase-requisition-form"
+                    >
+                      New Requisition
+                    </button>
+                  </div>
+                </div>
+                <div id="purchase-requisitions-table"></div>
+              </article>
+
+              <div class="three-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Create</p>
+                      <h3>Purchase Requisition</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="procurement"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="purchase-requisition-form" class="grid-form">
+                    <label
+                      >Request Date<input
+                        name="requestDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label
+                      >Purchase Type<select name="purchaseType" required>
+                        <option value="Weekly" selected>Weekly Purchase</option>
+                        <option value="Daily">Daily Purchase</option>
+                      </select></label
+                    >
+                    <label class="full-span"
+                      >Notes<textarea name="notes"></textarea>
+                    </label>
+                    <div class="form-guide full-span">
+                      <p class="form-guide-title">How to raise a purchase requisition</p>
+                      <ol>
+                        <li>Choose the request date and whether the purchase is daily or weekly.</li>
+                        <li>Add each ingredient or supply, the quantity needed, and the estimated cost.</li>
+                        <li>Save the requisition. It starts as a draft that you can review.</li>
+                        <li>Submit it for approval. An authorised procurement approver will approve, return, or reject it.</li>
+                        <li>After approval, use <em>Create PO</em> to place the supplier order.</li>
+                      </ol>
+                    </div>
+                    <label class="full-span">
+                      Requisition Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityRequested":100,"quantityApproved":0,"estimatedUnitCost":0}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Save Requisition</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Approvals</p>
+                      <h3>Requisition Actions</h3>
+                    </div>
+                  </div>
+                  <form
+                    id="purchase-requisition-approve-form"
+                    class="grid-form compact-form"
+                  >
+                    <input name="purchaseRequisitionId" type="hidden" />
+                    <label class="full-span">
+                      Approved Items
+                      <textarea name="itemsJson" rows="4">[]</textarea>
+                    </label>
+                    <button type="submit">Approve Requisition</button>
+                  </form>
+                  <form
+                    id="purchase-requisition-reject-form"
+                    class="grid-form compact-form stack-space"
+                  >
+                    <input name="purchaseRequisitionId" type="hidden" />
+                    <label>Reason<input name="reason" /></label>
+                    <button type="submit">Reject Requisition</button>
+                  </form>
+                  <div id="purchase-orders-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Orders & Receipts</p>
+                      <h3>Create Purchase Order</h3>
+                    </div>
+                  </div>
+                  <form id="purchase-order-form" class="grid-form">
+                    <label
+                      >Linked Requisition (optional)<select
+                        name="purchaseRequisitionId"
+                        id="purchase-order-requisition-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Purchase Type<select name="purchaseType" required>
+                        <option value="Weekly" selected>Weekly Purchase</option>
+                        <option value="Daily">Daily Purchase</option>
+                      </select></label
+                    >
+                    <label
+                      >Supplier<select
+                        name="supplierId"
+                        id="purchase-order-supplier-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Order Date<input name="orderDate" type="date" required
+                    /></label>
+                    <label
+                      >Expected Delivery<input
+                        name="expectedDeliveryDate"
+                        type="date"
+                    /></label>
+                    <label
+                      >Payment Terms<select
+                        name="paymentTermId"
+                        id="purchase-order-payment-term-select"
+                      ></select
+                    ></label>
+                    <label class="full-span">
+                      Order Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityOrdered":100,"unitCost":5000}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Create Purchase Order</button>
+                  </form>
+                  <div id="goods-received-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Finance</p>
+                      <h3>Receive, Invoice, Settle</h3>
+                    </div>
+                  </div>
+                  <form id="goods-received-form" class="grid-form">
+                    <label
+                      >Purchase Order<select
+                        name="purchaseOrderId"
+                        id="goods-received-order-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Receipt Date<input
+                        name="receiptDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label class="full-span">
+                      Received Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityReceived":100,"unitCost":5000,"batchNumber":"BATCH-001"}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Confirm Goods Received</button>
+                  </form>
+                  <form
+                    id="supplier-invoice-form"
+                    class="grid-form stack-space"
+                  >
+                    <label
+                      >Invoice Number<input
+                        name="invoiceNumber"
+                        placeholder="Leave blank to auto-generate"
+                    /></label>
+                    <label
+                      >Supplier<select
+                        name="supplierId"
+                        id="invoice-supplier-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Purchase Order<select
+                        name="purchaseOrderId"
+                        id="invoice-order-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Goods Received Note<select
+                        name="goodsReceivedNoteId"
+                        id="invoice-grn-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Invoice Date<input
+                        name="invoiceDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label
+                      >Payment Method<select
+                        name="paymentMethod"
+                        id="invoice-payment-method-select"
+                        required
+                      >
+                        <option value="">Select payment method</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit">Credit</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                      </select
+                    ></label>
+                    <label class="hidden" id="invoice-due-date-field"
+                      >Due Date<input name="dueDate" type="date"
+                    /></label>
+                    <label
+                      >Payment Terms<select
+                        name="paymentTermId"
+                        id="invoice-payment-term-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Total Amount<input
+                        name="totalAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <button type="submit">Record Invoice</button>
+                  </form>
+                  <form id="payment-voucher-form" class="grid-form stack-space">
+                    <label
+                      >Payment Source<select
+                        name="sourceType"
+                        id="payment-voucher-source-type"
+                        required
+                      >
+                        <option value="invoice" selected>Supplier Invoice</option>
+                        <option value="cash_requisition">Cash Requisition</option>
+                      </select
+                    ></label>
+                    <label
+                      id="payment-voucher-invoice-field"
+                      >Supplier Invoice<select
+                        name="supplierInvoiceId"
+                        id="payment-voucher-invoice-select"
+                      ></select
+                    ></label>
+                    <label class="hidden" id="payment-voucher-cash-field"
+                      >Cash Requisition<select
+                        name="cashRequisitionId"
+                        id="payment-voucher-cash-requisition-select"
+                      ></select
+                    ></label>
+                    <input name="supplierId" id="payment-voucher-supplier-id" type="hidden" />
+                    <label
+                      >Payment To<input
+                        id="payment-voucher-payee"
+                        type="text"
+                        placeholder="Select an invoice or cash requisition"
+                        readonly
+                      /></label>
+                    <label
+                      >Payment Date<input
+                        name="paymentDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label
+                      >Amount<input
+                        name="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                    /></label>
+                    <label
+                      >Payment Method<select
+                        name="paymentMethod"
+                        required
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                        <option value="Cheque">Cheque</option>
+                      </select
+                    ></label>
+                    <label>Payment Reference<input name="referenceNumber" placeholder="Optional bank or cash reference" /></label>
+                    <label class="full-span">Note<textarea name="notes" rows="2"></textarea></label>
+                    <button type="submit">Prepare Payment Voucher</button>
+                  </form>
+                  <form id="cash-requisition-form" class="grid-form hidden">
+                    <input name="id" type="hidden" />
+                    <label
+                      >Request Date<input name="requestDate" type="date" required
+                    /></label>
+                    <label
+                      >Required Date<input name="requiredDate" type="date"
+                    /></label>
+                    <label
+                      >Department<select
+                        name="departmentId"
+                        id="cash-requisition-department-select"
+                      ></select
+                    ></label>
+                    <label>Payee<input name="payeeName" placeholder="Who will receive the cash?" /></label>
+                    <label
+                      >Amount<input
+                        name="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                    /></label>
+                    <label class="full-span"
+                      >Purpose<input name="purpose" placeholder="What is the cash needed for?" required
+                    /></label>
+                    <label class="full-span"
+                      >Notes<textarea name="notes" rows="2" placeholder="Add helpful context for the approver"></textarea
+                    ></label>
+                    <button type="submit">Save Cash Requisition</button>
+                  </form>
+                  <form id="cash-requisition-action-form" class="grid-form hidden">
+                    <input name="id" type="hidden" />
+                    <input name="action" type="hidden" />
+                    <label class="full-span"
+                      >Reason<textarea name="reason" rows="3" placeholder="Explain what needs to change" required></textarea
+                    ></label>
+                    <button type="submit">Apply Decision</button>
+                  </form>
+                  <form id="cash-requisition-release-form" class="grid-form hidden">
+                    <input name="id" type="hidden" />
+                    <label
+                      >Payment Method<select name="paymentMethod" required>
+                        <option value="Cash">Cash</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                        <option value="Cheque">Cheque</option>
+                      </select
+                    ></label>
+                    <label
+                      >Release Reference<input name="referenceNumber" placeholder="Receipt, voucher, or payment reference" required
+                    /></label>
+                    <label class="full-span"
+                      >Release Notes<textarea name="notes" rows="2" placeholder="Where or to whom was the cash released?"></textarea
+                    ></label>
+                    <button type="submit">Confirm Cash Release</button>
+                  </form>
+                  <form id="cash-requisition-settle-form" class="grid-form hidden">
+                    <input name="id" type="hidden" />
+                    <label
+                      >Settlement Date<input name="settlementDate" type="date" required
+                    /></label>
+                    <label
+                      >Actual Spent<input
+                        name="actualSpentAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                    /></label>
+                    <label
+                      >Cash Returned<input
+                        name="cashReturnedAmount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                        required
+                    /></label>
+                    <label
+                      >Receipt Reference<input name="receiptReference" placeholder="Receipt or supporting reference"
+                    /></label>
+                    <label class="full-span"
+                      >Variance Reason<textarea name="varianceReason" rows="2" placeholder="Required if the full released amount was not spent or returned"></textarea
+                    ></label>
+                    <label class="full-span"
+                      >Settlement Notes<textarea name="notes" rows="2" placeholder="Add settlement notes or receipt details"></textarea
+                    ></label>
+                    <button type="submit">Settle and Close</button>
+                  </form>
+                  <div id="supplier-invoices-table" class="stack-space"></div>
+                </article>
+
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="inventory">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="inventory-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Current Stock
+                  </button>
+                  <button type="button" class="module-tab">Products</button>
+                  <button type="button" class="module-tab">
+                    Stock Movements
+                  </button>
+                  <button type="button" class="module-tab">Adjustments</button>
+                  <button type="button" class="module-tab">Transfers</button>
+                  <button type="button" class="module-tab">
+                    Physical Counts
+                  </button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="inventory"
+                      placeholder="Search products..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="inventory"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-export-module="inventory"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+                <div id="inventory-balances-table"></div>
+              </article>
+
+              <div class="three-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Catalog</p>
+                      <h3>Products</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="inventory"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="product-form" class="grid-form">
+                    <input name="id" type="hidden" />
+                    <label>Name<input name="name" required /></label>
+                    <label>SKU<input name="sku" /></label>
+                    <label
+                      >Product Type<input
+                        name="productType"
+                        value="Raw Material"
+                    /></label>
+                    <label
+                      >Category<select
+                        name="productCategoryId"
+                        id="product-category-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Unit<select
+                        name="unitOfMeasureId"
+                        id="product-unit-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Default Supplier<select
+                        name="defaultSupplierId"
+                        id="product-supplier-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Minimum Stock<input
+                        name="minimumStockLevel"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <label
+                      >Reorder Level<input
+                        name="reorderLevel"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <label
+                      >Standard Cost<input
+                        name="standardCost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <label>
+                      Perishable
+                      <select name="isPerishable">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </label>
+                    <label class="full-span"
+                      >Description<textarea name="description"></textarea>
+                    </label>
+                    <button type="submit">Save Product</button>
+                  </form>
+                  <div id="products-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Adjustments</p>
+                      <h3>Stock Actions</h3>
+                    </div>
+                  </div>
+                  <form id="stock-adjustment-form" class="grid-form">
+                    <label
+                      >Store<select
+                        name="storeLocationId"
+                        id="adjustment-store-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Adjustment Date<input
+                        name="adjustmentDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label>Reason<input name="reason" required /></label>
+                    <label class="full-span">
+                      Adjustment Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityDelta":5}]</textarea
+                      >
+                    </label>
+                    <label class="full-span"
+                      >Notes<textarea name="notes"></textarea>
+                    </label>
+                    <button type="submit">Create Adjustment</button>
+                  </form>
+                  <form
+                    id="stock-adjustment-approve-form"
+                    class="grid-form compact-form stack-space"
+                  >
+                    <input name="adjustmentId" type="hidden" />
+                    <button type="submit">Approve Adjustment</button>
+                  </form>
+                  <form id="physical-count-form" class="grid-form stack-space">
+                    <label
+                      >Store<select
+                        name="storeLocationId"
+                        id="count-store-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Count Date<input name="countDate" type="date" required
+                    /></label>
+                    <label class="full-span">
+                      Count Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"countedQuantity":95}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Perform Physical Count</button>
+                  </form>
+                  <div
+                    id="inventory-adjustments-table"
+                    class="stack-space"
+                  ></div>
+                  <div id="inventory-counts-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Visibility</p>
+                      <h3>Alerts and Movements</h3>
+                    </div>
+                  </div>
+                  <div id="inventory-low-stock-table"></div>
+                  <div id="inventory-expiring-table" class="stack-space"></div>
+                  <div id="inventory-movements-table" class="stack-space"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="kitchen">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="kitchen-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    My Requests
+                  </button>
+                  <button type="button" class="module-tab">Pending</button>
+                  <button type="button" class="module-tab">Procurement</button>
+                  <button type="button" class="module-tab">Issued</button>
+                  <button type="button" class="module-tab">Closed</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="kitchen"
+                      placeholder="Search requisitions..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="kitchen"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="refresh-btn"
+                      data-focus-form="kitchen-requisition-form"
+                    >
+                      Schedule Request
+                    </button>
+                  </div>
+                </div>
+                <div id="kitchen-requisitions-table"></div>
+              </article>
+
+              <div class="three-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Requests</p>
+                      <h3>Create Requisition</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="kitchen"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="kitchen-requisition-form" class="grid-form">
+                    <label
+                      >Request Date<input
+                        name="requestDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label
+                      >Production Date<input
+                        name="productionDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label
+                      >Department<select
+                        name="departmentId"
+                        id="kitchen-department-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Store<select
+                        name="sourceStoreLocationId"
+                        id="kitchen-store-select"
+                      ></select
+                    ></label>
+                    <label class="full-span">
+                      Requisition Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"requestedQuantity":20}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Create Requisition</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Workflow</p>
+                      <h3>Submit and Approve</h3>
+                    </div>
+                  </div>
+                  <form id="kitchen-submit-form" class="grid-form compact-form">
+                    <input name="kitchenRequisitionId" type="hidden" />
+                    <button type="submit">Submit Requisition</button>
+                  </form>
+                  <form id="kitchen-approve-form" class="grid-form stack-space">
+                    <input name="kitchenRequisitionId" type="hidden" />
+                    <label class="full-span">
+                      Approved Items
+                      <textarea name="itemsJson" rows="3">
+[{"id":1,"approvedQuantity":20}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Approve Requisition</button>
+                  </form>
+                  <form
+                    id="kitchen-reject-form"
+                    class="grid-form compact-form stack-space"
+                  >
+                    <input name="kitchenRequisitionId" type="hidden" />
+                    <label>Reason<input name="reason" /></label>
+                    <button type="submit">Reject Requisition</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Issue Control</p>
+                      <h3>Issue Stock to Kitchen</h3>
+                    </div>
+                  </div>
+                  <form id="store-issue-form" class="grid-form">
+                    <label
+                      >Kitchen Requisition<select
+                        name="kitchenRequisitionId"
+                        id="store-issue-requisition-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Issue Date<input name="issueDate" type="date" required
+                    /></label>
+                    <label class="full-span">
+                      Issue Items
+                      <textarea name="itemsJson" rows="4">
+[{"kitchenRequisitionItemId":1,"productId":1,"issuedQuantity":20,"unitCost":5000}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Issue Stock</button>
+                  </form>
+                  <div
+                    id="kitchen-store-issues-table"
+                    class="stack-space"
+                  ></div>
+                  <div
+                    id="kitchen-production-batches-table"
+                    class="stack-space"
+                  ></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="production">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="production-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Today's Batches
+                  </button>
+                  <button type="button" class="module-tab">
+                    Production Plan
+                  </button>
+                  <button type="button" class="module-tab">Completed</button>
+                  <button type="button" class="module-tab">Waste</button>
+                  <button type="button" class="module-tab">Returns</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="production"
+                      placeholder="Search batches..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="production"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="refresh-btn"
+                      data-focus-form="production-batch-form"
+                    >
+                      New Batch
+                    </button>
+                  </div>
+                </div>
+                <div id="production-batches-table"></div>
+              </article>
+
+              <div class="three-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Batching</p>
+                      <h3>Create Production Batch</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="production"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="production-batch-form" class="grid-form">
+                    <label
+                      >Production Date<input
+                        name="productionDate"
+                        type="date"
+                        required
+                    /></label>
+                    <label>Shift<input name="shift" value="Lunch" /></label>
+                    <label
+                      >Department<select
+                        name="departmentId"
+                        id="production-department-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Delivery Type<select
+                        name="deliveryTypeId"
+                        id="production-delivery-type-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Kitchen Requisition<select
+                        name="kitchenRequisitionId"
+                        id="production-requisition-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Store Issue<select
+                        name="storeIssueId"
+                        id="production-issue-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Planned Output<input
+                        name="plannedOutput"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <label class="full-span">
+                      Production Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityConsumed":18}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Create Production Batch</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Closeout</p>
+                      <h3>Complete and Waste</h3>
+                    </div>
+                  </div>
+                  <form id="complete-batch-form" class="grid-form compact-form">
+                    <input name="productionBatchId" type="hidden" />
+                    <label
+                      >Actual Output<input
+                        name="actualOutput"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <label
+                      >Wastage Quantity<input
+                        name="wastageQuantity"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="0"
+                    /></label>
+                    <button type="submit">Complete Batch</button>
+                  </form>
+                  <form id="wastage-form" class="grid-form stack-space">
+                    <label
+                      >Production Batch<select
+                        name="productionBatchId"
+                        id="wastage-batch-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Store Issue<select
+                        name="storeIssueId"
+                        id="wastage-issue-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Product<select
+                        name="productId"
+                        id="wastage-product-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Quantity<input
+                        name="quantity"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                    /></label>
+                    <label
+                      >Record Date<input name="recordDate" type="date" required
+                    /></label>
+                    <label
+                      >Type<input name="wastageType" value="Production"
+                    /></label>
+                    <button type="submit">Record Wastage</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Returns</p>
+                      <h3>Unused Stock</h3>
+                    </div>
+                  </div>
+                  <form id="return-form" class="grid-form">
+                    <label
+                      >Kitchen Requisition<select
+                        name="kitchenRequisitionId"
+                        id="return-requisition-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Store Issue<select
+                        name="storeIssueId"
+                        id="return-issue-select"
+                        required
+                      ></select
+                    ></label>
+                    <label
+                      >Store<select
+                        name="storeLocationId"
+                        id="return-store-select"
+                      ></select
+                    ></label>
+                    <label
+                      >Return Date<input name="returnDate" type="date" required
+                    /></label>
+                    <label class="full-span">
+                      Return Items
+                      <textarea name="itemsJson" rows="4">
+[{"productId":1,"quantityReturned":2,"unitCost":5000}]</textarea
+                      >
+                    </label>
+                    <button type="submit">Return Unused Stock</button>
+                  </form>
+                  <div id="store-issues-table" class="stack-space"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="consumption">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="consumption-metrics"
+              ></div>
+
+              <div class="two-column module-chart-grid">
+                <article class="panel chart-panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Overview</p>
+                      <h3>Consumption Trend</h3>
+                    </div>
+                  </div>
+                  <div id="consumption-trend-chart" class="chart-canvas"></div>
+                </article>
+
+                <article class="panel chart-panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Top Products</p>
+                      <h3>Most Consumed</h3>
+                    </div>
+                  </div>
+                  <div id="consumption-donut-chart" class="donut-layout"></div>
+                </article>
+              </div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Overview
+                  </button>
+                  <button type="button" class="module-tab">
+                    Product Consumption
+                  </button>
+                  <button type="button" class="module-tab">Variance</button>
+                  <button type="button" class="module-tab">
+                    Waste Analysis
+                  </button>
+                  <button type="button" class="module-tab">Trends</button>
+                </div>
+                <div class="search-filter-bar">
+                  <form
+                    id="consumption-range-form"
+                    class="grid-form compact-form inline-form"
+                  >
+                    <label
+                      >Start Date<input name="startDate" type="date" required
+                    /></label>
+                    <label
+                      >End Date<input name="endDate" type="date" required
+                    /></label>
+                    <button type="submit">Refresh Reports</button>
+                  </form>
+                </div>
+                <div id="consumption-products-table"></div>
+              </article>
+
+              <div class="two-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Variance</p>
+                      <h3>Expected vs Actual</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="consumption"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <div id="consumption-variance-table"></div>
+                  <div id="consumption-wastage-table" class="stack-space"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Periods</p>
+                      <h3>Daily, Weekly, Monthly</h3>
+                    </div>
+                  </div>
+                  <div id="consumption-daily-table"></div>
+                  <div id="consumption-weekly-table" class="stack-space"></div>
+                  <div id="consumption-monthly-table" class="stack-space"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="reports">
+            <div class="module-screen">
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Operational
+                  </button>
+                  <button type="button" class="module-tab">Inventory</button>
+                  <button type="button" class="module-tab">Procurement</button>
+                  <button type="button" class="module-tab">Finance</button>
+                  <button type="button" class="module-tab">Contracts</button>
+                  <button type="button" class="module-tab">Production</button>
+                  <button type="button" class="module-tab">Management</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="reports"
+                      placeholder="Search reports..."
+                    />
+                  </label>
+                  <div class="bar-actions report-period-bar">
+                    <label class="report-period-field">
+                      <span>Period</span>
+                      <select id="reports-period">
+                        <option value="today">Today</option>
+                        <option value="week">This week</option>
+                        <option value="month" selected>This month</option>
+                        <option value="year">This year</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </label>
+                    <input type="date" id="reports-start-date" class="hidden" />
+                    <input type="date" id="reports-end-date" class="hidden" />
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="reports"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="refresh-btn"
+                      data-quick-action="show-report-help"
+                    >
+                      Export guide
+                    </button>
+                  </div>
+                </div>
+                <div class="report-grid" id="reports-grid"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="suppliers">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="suppliers-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="suppliers"
+                      placeholder="Search suppliers..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="suppliers"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-export-module="suppliers"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+                <div id="suppliers-table"></div>
+              </article>
+
+              <div class="two-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Supplier Directory</p>
+                      <h3>Add Supplier</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="suppliers"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <form id="supplier-form" class="grid-form">
+                    <input name="id" type="hidden" />
+                    <label>Name<input name="name" required /></label>
+                    <label>Contact Person<input name="contactPerson" /></label>
+                    <label>Phone<input name="phone" /></label>
+                    <label
+                      >Payment Terms<select
+                        name="paymentTermId"
+                        id="payment-term-select"
+                      ></select
+                    ></label>
+                    <label class="full-span"
+                      >Address<textarea name="address"></textarea>
+                    </label>
+                    <button type="submit">Save Supplier</button>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Vendor Context</p>
+                      <h3>Supplier-Linked Products</h3>
+                    </div>
+                  </div>
+                  <div id="suppliers-product-preview"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="configurations">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="configurations-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div class="module-tabs">
+                  <button type="button" class="module-tab active">
+                    Master Data
+                  </button>
+                  <button type="button" class="module-tab">
+                    Workflow Controls
+                  </button>
+                  <button type="button" class="module-tab">
+                    Commercial &amp; Finance
+                  </button>
+                  <button type="button" class="module-tab">Alerts</button>
+                </div>
+                <div class="search-filter-bar">
+                  <label class="search-box">
+                    <span class="search-box-icon">&#128269;</span>
+                    <input
+                      type="search"
+                      data-search-module="configurations"
+                      placeholder="Search configurations..."
+                    />
+                  </label>
+                  <div class="bar-actions">
+                    <button
+                      type="button"
+                      class="ghost-btn slim-btn"
+                      data-reset-module="configurations"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      class="refresh-btn"
+                      data-open-form="configuration-form"
+                      data-reset-form="true"
+                    >
+                      New Configuration
+                    </button>
+                  </div>
+                </div>
+                <div id="configurations-table"></div>
+              </article>
+
+              <div class="two-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Configuration Context</p>
+                      <h3>Workspace Guidance</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="configurations"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <div id="configurations-summary"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Audit Trail</p>
+                      <h3>Recent Configuration Changes</h3>
+                    </div>
+                  </div>
+                  <div id="configurations-audit-table"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="module hidden" data-module="approval-matrix">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="approval-matrix-metrics"
+              ></div>
+
+              <article class="panel module-primary-panel">
+                <div id="approval-matrix-table"></div>
+              </article>
+
+              <div class="two-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Matrix Context</p>
+                      <h3>Approval Boundaries</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="approval-matrix"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+                  <div id="approval-matrix-summary"></div>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Audit Trail</p>
+                      <h3>Matrix Changes</h3>
+                    </div>
+                  </div>
+                  <div id="approval-matrix-audit-table"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+          <section class="module hidden" data-module="settings">
+            <div class="module-screen">
+              <div
+                class="metric-grid module-metric-grid"
+                id="settings-metrics"
+              ></div>
+
+              <div class="two-column module-work-grid">
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Authentication</p>
+                      <h3>Users</h3>
+                    </div>
+                    <button
+                      class="ghost-btn slim-btn"
+                      data-load="settings"
+                      type="button"
+                    >
+                      Reload
+                    </button>
+                  </div>
+
+                  <form id="user-form" class="grid-form">
+                    <label>Full Name<input name="fullName" required /></label>
+                    <label>Username<input name="username" required /></label>
+                    <label>Email<input name="email" type="email" /></label>
+                    <label
+                      >Password<input name="password" type="password" required
+                    /></label>
+                    <fieldset class="full-span user-role-picker">
+                      <legend>Roles *</legend>
+                      <p class="field-help">Select one or more roles. Permissions from all selected roles are combined.</p>
+                      <div id="create-user-role-options" class="user-role-options"></div>
+                    </fieldset>
+                    <button type="submit">Create User</button>
+                  </form>
+                  <div class="form-status" id="user-status"></div>
+                  <form id="user-roles-form" class="grid-form hidden">
+                    <input type="hidden" name="id" />
+                    <p id="user-roles-account" class="full-span"></p>
+                    <fieldset class="full-span user-role-picker">
+                      <legend>Roles *</legend>
+                      <p class="field-help">Select one or more roles. Permissions from all selected roles are combined.</p>
+                      <div id="edit-user-role-options" class="user-role-options"></div>
+                    </fieldset>
+                    <button type="submit">Save Roles</button>
+                    <div class="form-status full-span" id="user-roles-status"></div>
+                  </form>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-header">
+                    <div>
+                      <p class="eyebrow">Security</p>
+                      <h3>Users and Roles</h3>
+                    </div>
+                  </div>
+                  <div id="users-table"></div>
+                  <div id="roles-table" class="stack-space"></div>
+                </article>
+              </div>
+
+              <article class="panel module-primary-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Audit Trail</p>
+                    <h3>Transaction History</h3>
+                  </div>
+                </div>
+                <div id="audit-table"></div>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <div
+          id="toast"
+          class="toast hidden"
+          role="status"
+          aria-live="polite"
+        ></div>
+        <div
+          id="detail-modal"
+          class="detail-modal hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="detail-modal-title"
+        >
+          <div class="detail-modal-card">
+            <div class="detail-modal-header">
+              <div>
+                <p class="eyebrow">Record details</p>
+                <h3 id="detail-modal-title">Record Details</h3>
+              </div>
+              <button
+                type="button"
+                class="modal-close-btn"
+                id="detail-modal-close"
+                aria-label="Close record details"
+              >
+                &#10005;
+              </button>
+            </div>
+            <div id="detail-modal-body" class="detail-modal-body"></div>
+          </div>
+        </div>
+        <div
+          id="form-modal"
+          class="detail-modal hidden form-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="form-modal-title"
+          aria-describedby="form-modal-copy"
+        >
+          <div class="detail-modal-card form-modal-card">
+            <div class="detail-modal-header">
+              <div>
+                <p class="eyebrow" id="form-modal-kicker">Workspace Action</p>
+                <h3 id="form-modal-title">Form</h3>
+                <p class="workspace-copy" id="form-modal-copy"></p>
+              </div>
+              <button
+                type="button"
+                class="modal-close-btn"
+                id="form-modal-close"
+                aria-label="Close form"
+              >
+                &#10005;
+              </button>
+            </div>
+            <div
+              id="form-modal-body"
+              class="detail-modal-body form-modal-body"
+            ></div>
+          </div>
+        </div>
+        <form id="configuration-form" class="grid-form hidden">
+          <input type="hidden" name="type" />
+          <input type="hidden" name="id" />
+          <div
+            id="configuration-form-fields"
+            class="contract-section-grid full-span"
+          ></div>
+          <button type="submit">Save Configuration</button>
+        </form>
+      </main>
+    </div>
+
+    <script src="/js/app.js?v=invoice-payment-methods-v3"></script>
+  </body>
+</html>

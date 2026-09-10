@@ -1,0 +1,39 @@
+/* Theme changes are token-only so every shared component inherits them. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-brand-50: #1c332e;
+  --color-brand-100: #254139;
+  --color-brand-200: #406858;
+  --color-brand-500: #87c8b2;
+  --color-brand-600: #80c4ad;
+  --color-brand-700: #a0dbc6;
+  --color-brand-800: #b9e3d3;
+  --color-ink-950: #e5ece7;
+  --color-ink-800: #d7e0d9;
+  --color-ink-700: #c0cec4;
+  --color-ink-600: #acbab0;
+  --color-ink-500: #95a69a;
+  --color-ink-400: #7c9182;
+  --color-line: #2c3a31;
+  --color-line-strong: #43584a;
+  --color-canvas: #101218;
+  --color-surface: #181b22;
+  --color-surface-muted: #20292a;
+  --color-sidebar: #141a1a;
+  --color-success: #95cfab;
+  --color-success-soft: #203629;
+  --color-warning: #dfbf7e;
+  --color-warning-soft: #332d21;
+  --color-danger: #f0a2a2;
+  --color-danger-soft: #382727;
+  --color-info: #a0bee8;
+  --color-info-soft: #233044;
+  --focus-ring: 0 0 0 3px #80c4ad33;
+}
+[data-theme="dark"] .refresh-btn,
+[data-theme="dark"] .sign-in-btn,
+[data-theme="dark"] form button[type="submit"],
+[data-theme="dark"] .brand-mark,
+[data-theme="dark"] .login-brand-mark {
+  color: #13291f;
+}
