@@ -18,10 +18,30 @@ const { getUserWithAccess } = require("./src/services/system-service");
 const app = express();
 const db = new Database();
 const port = Number.parseInt(process.env.PORT || "3000", 10);
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+const configuredOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
   .split(",")
   .map((value) => value.trim())
   .filter(Boolean);
+const railwayPublicOrigin = process.env.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : null;
+const allowedOrigins = new Set(
+  [...configuredOrigins, railwayPublicOrigin].filter(Boolean),
+);
+
+function isSameOriginRequest(req) {
+  const requestOrigin = req.get("origin");
+  if (!requestOrigin) return true;
+
+  try {
+    const originUrl = new URL(requestOrigin);
+    const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+    const requestProtocol = forwardedProtocol || req.protocol;
+    return originUrl.protocol === `${requestProtocol}:` && originUrl.host === req.get("host");
+  } catch {
+    return false;
+  }
+}
 const dbReady = (async () => {
   await ensureDatabaseExists(db.config);
   await initializeDatabase(db);
@@ -49,18 +69,24 @@ app.use(
   })
 );
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || process.env.NODE_ENV !== "production") {
-        callback(null, true);
-        return;
-      }
-      callback(allowedOrigins.includes(origin) ? null : new Error("Not allowed by CORS"), true);
-    },
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || process.env.NODE_ENV !== "production") {
+      callback(null, true);
+      return;
+    }
+    callback(allowedOrigins.has(origin) ? null : new Error("Not allowed by CORS"), true);
+  },
+  credentials: true,
+};
+
+app.use((req, res, next) => {
+  if (isSameOriginRequest(req)) {
+    next();
+    return;
+  }
+  cors(corsOptions)(req, res, next);
+});
 app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
