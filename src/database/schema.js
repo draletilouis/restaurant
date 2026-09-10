@@ -1368,6 +1368,14 @@ function getSequence(prefix, number) {
 }
 
 async function ensureDatabaseExists(connectionConfig) {
+  // Managed PostgreSQL services provide a connection string for an already
+  // provisioned database. There is no separate admin connection to establish
+  // in this mode, and attempting to read host/port from the connection-string
+  // config would silently fall back to localhost.
+  if (connectionConfig.connectionString) {
+    return;
+  }
+
   const adminClient = new Client({
     host: connectionConfig.host,
     port: connectionConfig.port,
