@@ -13,6 +13,7 @@
     "test": "cross-env NODE_ENV=test POSTGRES_DB_TEST=cater_phase_one_test jest --runInBand --verbose --forceExit",
     "init-postgres": "node src/database/init-postgres.js",
     "reset-postgres": "node src/database/init-postgres.js --reset",
+    "clear-live-data": "node scripts/clear-live-data.js",
     "generate-secret": "node -e \"console.log('SESSION_SECRET=' + require('crypto').randomBytes(32).toString('hex'))\""
   },
   "dependencies": {

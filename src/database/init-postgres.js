@@ -10,7 +10,12 @@ async function main() {
     await initializeDatabase(db, {
       reset: process.argv.includes("--reset"),
     });
-    await seedDemoData(db);
+    const shouldSeedDemoData =
+      process.env.SEED_DEMO_DATA === "true" ||
+      (process.env.NODE_ENV !== "production" && process.env.SKIP_DEMO_SEED !== "true");
+    if (shouldSeedDemoData) {
+      await seedDemoData(db);
+    }
     console.log("Cater Phase 1 database initialized successfully.");
   } finally {
     await db.pool.end();

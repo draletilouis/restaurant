@@ -45,7 +45,12 @@ function isSameOriginRequest(req) {
 const dbReady = (async () => {
   await ensureDatabaseExists(db.config);
   await initializeDatabase(db);
-  if (process.env.SKIP_DEMO_SEED !== "true") {
+  // Demo data is opt-in for production. A client deployment must never be
+  // populated with sample records just because a seed flag was omitted.
+  const shouldSeedDemoData =
+    process.env.SEED_DEMO_DATA === "true" ||
+    (process.env.NODE_ENV !== "production" && process.env.SKIP_DEMO_SEED !== "true");
+  if (shouldSeedDemoData) {
     await seedDemoData(db);
   }
 })();
@@ -88,8 +93,8 @@ app.use((req, res, next) => {
   cors(corsOptions)(req, res, next);
 });
 app.use(compression());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json({ limit: "4mb" }));
+app.use(bodyParser.urlencoded({ extended: false, limit: "4mb" }));
 
 const usePgSessionStore = process.env.NODE_ENV === "production" || process.env.USE_PG_SESSION === "true";
 const sessionStore = usePgSessionStore
