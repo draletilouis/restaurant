@@ -38,7 +38,17 @@ The database initializer always creates the administrator role and login. Demo r
 
 For a throwaway local demo database, set `SEED_DEMO_DATA=true`. Do not enable that flag in production.
 
-To clear an existing client database while retaining the `admin` login, set `CONFIRM_CLEAR_LIVE_DATA=YES` and run `npm run clear-live-data` after verifying the database connection values. This removes operational and demo records but preserves system reference configuration.
+To clear the Railway client database while retaining the administrator login, run the guarded script from the production service environment. It requires the four safeguards below and will refuse to run against another environment:
+
+```powershell
+$env:NODE_ENV="production"
+$env:CLEAR_LIVE_DATA_TARGET="alert-friendship-production"
+$env:KEEP_LOGIN_EMAIL="admin@cater.local"
+$env:CONFIRM_CLEAR_LIVE_DATA="YES"
+npm run clear-live-data
+```
+
+The script uses Railway's `DATABASE_URL`, removes operational and demo records, deletes other user accounts, resets document numbering, and preserves system reference configuration plus the specified login. It prints before/after counts and verifies that only the retained administrator remains. Do not run it until the command is attached to the intended Railway production service.
 
 Local development uses the in-memory session store by default through `USE_PG_SESSION=false`.
 Production can switch back to PostgreSQL-backed sessions.

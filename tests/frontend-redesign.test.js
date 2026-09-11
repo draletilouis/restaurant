@@ -45,7 +45,7 @@ describe("frontend redesign contracts", () => {
   });
 
   test("loads the enterprise visual system instead of a decorative template", () => {
-    expect(html).toContain('meta name="theme-color" content="#111318"');
+    expect(html).toContain('meta name="theme-color" content="#0e6b66"');
     expect(html).toContain('href="/css/theme.css"');
     expect(html).toContain("Inter");
     expect(html).not.toContain("Montserrat");

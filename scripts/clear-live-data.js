@@ -4,6 +4,9 @@ require("dotenv").config();
 
 const Database = require("../src/database/database");
 
+const EXPECTED_TARGET = "alert-friendship-production";
+const KEEP_LOGIN_EMAIL = (process.env.KEEP_LOGIN_EMAIL || "admin@cater.local").trim();
+
 const OPERATIONAL_TABLES = [
   "attachments",
   "approval_history",
@@ -60,13 +63,33 @@ async function main() {
       );
     }
 
+    if (process.env.NODE_ENV !== "production") {
+      throw new Error("Refusing to clear data unless NODE_ENV=production.");
+    }
+
+    if (process.env.CLEAR_LIVE_DATA_TARGET !== EXPECTED_TARGET) {
+      throw new Error(
+        `Refusing to clear an unverified database. Set CLEAR_LIVE_DATA_TARGET=${EXPECTED_TARGET}.`
+      );
+    }
+
+    if (!KEEP_LOGIN_EMAIL) {
+      throw new Error("KEEP_LOGIN_EMAIL must identify the login to preserve.");
+    }
+
+    const databaseIdentity = await db.get(
+      "SELECT current_database() AS database, current_user AS user"
+    );
+
     const admin = await db.get(
-      "SELECT id, username, email FROM users WHERE username = ? LIMIT 1",
-      ["admin"]
+      "SELECT id, username, email FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1",
+      [KEEP_LOGIN_EMAIL]
     );
 
     if (!admin) {
-      throw new Error("The admin login account was not found; refusing to clear the database.");
+      throw new Error(
+        `The login ${KEEP_LOGIN_EMAIL} was not found; refusing to clear the database.`
+      );
     }
 
     const before = {};
@@ -124,9 +147,23 @@ async function main() {
       "SELECT id, username, email, is_active FROM users WHERE id = ?",
       [admin.id]
     );
+    const retainedRole = await db.get(
+      `SELECT r.code
+       FROM user_roles ur
+       JOIN roles r ON r.id = ur.role_id
+       WHERE ur.user_id = ? AND r.code = 'admin'`,
+      [admin.id]
+    );
+
+    const hasOperationalRows = Object.values(after).some((count) => count !== 0);
+    if (hasOperationalRows || after.users !== 1 || !retainedLogin || !retainedRole) {
+      throw new Error("Cleanup verification failed; inspect the database before using it live.");
+    }
 
     console.log(JSON.stringify({
       success: true,
+      target: process.env.CLEAR_LIVE_DATA_TARGET,
+      database: databaseIdentity,
       retainedLogin,
       before,
       after,
