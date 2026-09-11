@@ -1,0 +1,41 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0e6b66" />
+    <title>Lefori — Offline</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, sans-serif;
+        background: #0b1c1a;
+        color: #f4f8f7;
+        padding: 24px;
+        text-align: center;
+      }
+      h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.4px; }
+      p { margin: 0; color: rgba(244, 248, 247, 0.75); font-size: 14px; }
+      button {
+        margin-top: 20px;
+        border: 0;
+        border-radius: 8px;
+        min-height: 40px;
+        padding: 0 16px;
+        background: #0e6b66;
+        color: white;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>You are offline</h1>
+      <p>Lefori needs a connection to load live operations data.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

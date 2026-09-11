@@ -396,13 +396,11 @@ async function loadPaymentVoucher(db, id) {
             cr.requisition_number AS cash_requisition_number,
             cr.payee_name AS cash_payee_name, cr.purpose AS cash_requisition_purpose,
             cr.currency_code, prepared.full_name AS prepared_by_name,
-            approved.full_name AS approved_by_name, paid.full_name AS paid_by_name,
-            po.lpo_number
+            approved.full_name AS approved_by_name, paid.full_name AS paid_by_name
      FROM payment_vouchers pv
      LEFT JOIN suppliers s ON s.id = pv.supplier_id
      LEFT JOIN supplier_invoices si ON si.id = pv.supplier_invoice_id
      LEFT JOIN cash_requisitions cr ON cr.id = pv.cash_requisition_id
-     LEFT JOIN purchase_orders po ON po.id = pv.purchase_order_id
      LEFT JOIN users prepared ON prepared.id = pv.prepared_by
      LEFT JOIN users approved ON approved.id = pv.approved_by
      LEFT JOIN users paid ON paid.id = pv.paid_by
@@ -415,9 +413,19 @@ async function loadPaymentVoucher(db, id) {
   const sourceNumber = isCashRequisition
     ? header.cash_requisition_number
     : header.invoice_number;
-  const payee = header.supplier_name || header.cash_payee_name || "-";
+  const payee =
+    String(header.payee_name || "").trim() ||
+    header.supplier_name ||
+    header.cash_payee_name ||
+    "-";
   const currency = header.currency_code || "UGX";
   const amount = Number(header.amount || 0);
+  const purpose = String(
+    header.purpose || header.cash_requisition_purpose || "",
+  ).trim();
+  const lineDescription = isCashRequisition
+    ? purpose || "Cash requisition payment"
+    : purpose || `Payment against supplier invoice ${sourceNumber || "-"}`;
 
   return {
     number: header.voucher_number,
@@ -433,27 +441,30 @@ async function loadPaymentVoucher(db, id) {
     rightMetaRows: [
       { label: "Status", value: header.status, bold: true },
       { label: isCashRequisition ? "Cash Requisition" : "Supplier Invoice", value: sourceNumber || "-" },
-      { label: "LPO", value: header.lpo_number || "-" },
       { label: "Prepared By", value: header.prepared_by_name || "-" },
       { label: "Approved By", value: header.approved_by_name || "-" },
       { label: "Paid By", value: header.paid_by_name || "-" },
     ],
     columns: [
-      { key: "description", header: "Payment Description", className: "col-name", excelHeader: "Description", excelKey: "description", width: 44 },
-      { key: "qty", header: "Qty", className: "col-qty", excelHeader: "Qty", excelKey: "qtyValue", width: 10 },
+      {
+        key: "description",
+        header: isCashRequisition ? "Purpose" : "Payment Description",
+        className: "col-name",
+        excelHeader: isCashRequisition ? "Purpose" : "Description",
+        excelKey: "description",
+        width: 52,
+      },
       { key: "amount", header: "Amount", className: "col-total", excelHeader: "Amount", excelKey: "amountValue", width: 18 },
     ],
     htmlRows: [
       {
-        description: escapeHtml(`Payment to ${payee} against ${isCashRequisition ? "cash requisition" : "supplier invoice"} ${sourceNumber || "-"}`),
-        qty: "1",
+        description: escapeHtml(lineDescription),
         amount: escapeHtml(formatCurrency(amount, currency)),
       },
     ],
     excelRows: [
       {
-        description: `Payment to ${payee} against ${isCashRequisition ? "cash requisition" : "supplier invoice"} ${sourceNumber || "-"}`,
-        qtyValue: 1,
+        description: lineDescription,
         amountValue: amount,
       },
     ],

@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth , requirePermission } = require("../middleware/auth");
 const { logAudit } = require("../services/audit-service");
 const { applyStockAdjustment, getInventoryBalance } = require("../services/inventory-service");
 const { getNextSequence } = require("../services/system-service");
@@ -195,13 +195,51 @@ function createInventoryRoutes(db) {
     }
   });
 
+  router.post("/stock-adjustments/:id/submit", async (req, res, next) => {
+    try {
+      const adjustment = await db.get("SELECT * FROM stock_adjustments WHERE id = ?", [req.params.id]);
+      if (!adjustment) {
+        res.status(404).json({ success: false, message: "Stock adjustment not found" });
+        return;
+      }
+      if (String(adjustment.status || "").toLowerCase() !== "draft") {
+        res.status(400).json({ success: false, message: "Only draft stock adjustments can be submitted." });
+        return;
+      }
+      const submittedStatus = await getStatus(db, "stock_adjustment", "submitted", { fallbackName: "Submitted" });
+      await db.exec(
+        `UPDATE stock_adjustments
+         SET status_id = ?, status = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [submittedStatus?.id || null, submittedStatus?.status_name || "Submitted", req.params.id]
+      );
+      await logAudit(db, req.session.user.id, "submit", "stock_adjustment", Number(req.params.id), {});
+      const refreshed = await db.get("SELECT * FROM stock_adjustments WHERE id = ?", [req.params.id]);
+      res.json({ success: true, data: refreshed });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post(
     "/stock-adjustments/:id/approve",
+    requirePermission("stock_adjustments.approve"),
     async (req, res, next) => {
       try {
         const adjustment = await db.get("SELECT * FROM stock_adjustments WHERE id = ?", [req.params.id]);
         if (!adjustment) {
           res.status(404).json({ success: false, message: "Stock adjustment not found" });
+          return;
+        }
+        if (String(adjustment.status || "").toLowerCase() !== "submitted") {
+          res.status(400).json({ success: false, message: "Submit the stock adjustment before approving it." });
+          return;
+        }
+        if (
+          !(req.session.user.roles || []).includes("admin") &&
+          Number(adjustment.requested_by) === Number(req.session.user.id)
+        ) {
+          res.status(403).json({ success: false, message: "Users cannot approve their own stock adjustments unless they are Admin." });
           return;
         }
         const approvedStatus = await getStatus(db, "stock_adjustment", "approved", { fallbackName: "Approved" });
@@ -242,11 +280,16 @@ function createInventoryRoutes(db) {
 
   router.post(
     "/stock-adjustments/:id/reject",
+    requirePermission("stock_adjustments.approve"),
     async (req, res, next) => {
       try {
         const adjustment = await db.get("SELECT * FROM stock_adjustments WHERE id = ?", [req.params.id]);
         if (!adjustment) {
           res.status(404).json({ success: false, message: "Stock adjustment not found" });
+          return;
+        }
+        if (!["draft", "submitted"].includes(String(adjustment.status || "").toLowerCase())) {
+          res.status(400).json({ success: false, message: "Only draft or submitted adjustments can be rejected." });
           return;
         }
         const rejectedStatus = await getStatus(db, "stock_adjustment", "rejected", { fallbackName: "Rejected" });
@@ -377,7 +420,8 @@ function createInventoryRoutes(db) {
          FROM products p
          LEFT JOIN inventory_balances ib ON ib.product_id = p.id
          GROUP BY p.id
-         HAVING COALESCE(SUM(ib.quantity_on_hand), 0) <= p.reorder_level
+         HAVING p.reorder_level > 0
+            AND COALESCE(SUM(ib.quantity_on_hand), 0) <= p.reorder_level
          ORDER BY current_stock ASC, p.name`
       );
       res.json({ success: true, data: rows });

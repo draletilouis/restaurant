@@ -18,6 +18,12 @@ const moduleIcons = {
   suppliers: navIcon(
     "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M4 19a4 4 0 0 1 8 0 M16 11h5 M16 15h4 M16 7h5",
   ),
+  "cash-requisitions": navIcon(
+    "M4 7h16v10H4z M8 4h8 M9 12h6 M12 9v6",
+  ),
+  "payment-vouchers": navIcon(
+    "M4 6h16v12H4z M8 10h8 M8 14h5 M7 6V4h10v2",
+  ),
   "approval-matrix": navIcon(
     "M5 6h6v6H5z M13 6h6v6h-6z M5 14h6v6H5z M13 14h6v6h-6z",
   ),
@@ -32,7 +38,11 @@ const moduleIcons = {
 const APPROVAL_PERMISSIONS = [
   "procurement_requisitions.approve",
   "kitchen_requisitions.approve",
+  "payment_vouchers.approve",
+  "stock_adjustments.approve",
 ];
+const PAYMENT_VOUCHER_APPROVAL_PERMISSION = "payment_vouchers.approve";
+const STOCK_ADJUSTMENT_APPROVAL_PERMISSION = "stock_adjustments.approve";
 
 const PROCUREMENT_REQUISITION_APPROVAL_PERMISSION = "procurement_requisitions.approve";
 const KITCHEN_REQUISITION_APPROVAL_PERMISSION = "kitchen_requisitions.approve";
@@ -70,6 +80,24 @@ const modules = [
     icon: moduleIcons.procurement,
     group: "Supply chain",
     sectionKey: "procurement",
+    copy: "",
+  },
+  {
+    key: "cash-requisitions",
+    label: "Cash requisitions",
+    icon: moduleIcons["cash-requisitions"],
+    group: "Supply chain",
+    sectionKey: "procurement",
+    procurementTab: "cash requisitions",
+    copy: "",
+  },
+  {
+    key: "payment-vouchers",
+    label: "Payment vouchers",
+    icon: moduleIcons["payment-vouchers"],
+    group: "Supply chain",
+    sectionKey: "procurement",
+    procurementTab: "payments",
     copy: "",
   },
   {
@@ -151,6 +179,10 @@ const workspaceDescriptions = {
   contracts: "Client agreements, delivery schedules and meal commitments.",
   procurement:
     "Raise a purchase order when stock is needed, then receive, invoice, and pay.",
+  "cash-requisitions":
+    "Request, release, and settle cash for operational spending.",
+  "payment-vouchers":
+    "Prepare payment vouchers from supplier invoices or approved cash requisitions.",
   inventory:
     "Stock balances, batches and every movement through central stores.",
   kitchen: "Review kitchen requests and issue approved stock.",
@@ -187,6 +219,8 @@ const state = {
     contracts: { search: "", tab: "active" },
     approvals: { search: "", tab: "pending" },
     procurement: { search: "", tab: "purchase orders", purchaseType: "" },
+    "cash-requisitions": { search: "", tab: "pending" },
+    "payment-vouchers": { search: "", tab: "all" },
     inventory: { search: "", tab: "current stock" },
     kitchen: { search: "", tab: "pending" },
     production: { search: "", tab: "today's batches" },
@@ -223,8 +257,17 @@ const workspaceTabs = {
     { key: "goods received", label: "Goods Received" },
     { key: "suppliers", label: "Suppliers" },
     { key: "invoices", label: "Invoices" },
-    { key: "cash requisitions", label: "Cash Requisitions" },
-    { key: "payments", label: "Payment Vouchers" },
+  ],
+  "cash-requisitions": [
+    { key: "pending", label: "Pending approval" },
+    { key: "in progress", label: "Approved / release" },
+    { key: "closed", label: "Closed" },
+    { key: "all", label: "All" },
+  ],
+  "payment-vouchers": [
+    { key: "all", label: "All vouchers" },
+    { key: "open", label: "Open" },
+    { key: "paid", label: "Paid" },
   ],
   inventory: [
     { key: "current stock", label: "Current Stock" },
@@ -364,7 +407,7 @@ const formModalMeta = {
     eyebrow: "Finance",
     title: "Payment Voucher",
     description:
-      "Choose a supplier invoice or an approved cash requisition. The payee, amount, date, and source details fill in for you.",
+      "Link a supplier invoice or cash requisition, then capture payee, purpose, amount, method, and reference — everything that prints on the voucher.",
   },
   "cash-requisition-form": {
     eyebrow: "Cash Requisitions",
@@ -517,6 +560,9 @@ const DETAIL_HIDDEN_KEYS = new Set([
   "user_id",
   "password_hash",
   "metadata",
+  "lpo_number",
+  "po_number",
+  "purchase_order_number",
 ]);
 
 function isPlainObject(value) {
@@ -1890,7 +1936,21 @@ function getWorkspaceTabs(moduleKey) {
 function getActiveWorkspace(moduleKey) {
   const tabs = getWorkspaceTabs(moduleKey);
   const current = state.filters[moduleKey]?.tab;
+  const activeNav = modules.find((entry) => entry.key === state.activeModule);
+  if (
+    moduleKey === "procurement" &&
+    activeNav?.procurementTab &&
+    state.activeModule !== "procurement"
+  ) {
+    return activeNav.procurementTab;
+  }
   if (tabs.some((tab) => tab.key === current)) {
+    return current;
+  }
+  if (
+    moduleKey === "procurement" &&
+    ["cash requisitions", "payments"].includes(current)
+  ) {
     return current;
   }
   return tabs[0]?.key || current || "";
@@ -2033,12 +2093,21 @@ function configureWorkspaceChrome(moduleKey, view) {
   );
   const actionHost = primaryPanel.querySelector(".bar-actions");
 
-  const tabs = getWorkspaceTabs(moduleKey);
-  tabsHost.setAttribute("aria-label", `${titleCaseWords(moduleKey)} views`);
+  const activeNav = modules.find((entry) => entry.key === state.activeModule);
+  const aliasModule =
+    moduleKey === "procurement" &&
+    activeNav?.procurementTab &&
+    state.activeModule !== "procurement"
+      ? state.activeModule
+      : null;
+  const tabsModuleKey = aliasModule || moduleKey;
+  const tabs = getWorkspaceTabs(tabsModuleKey);
+  tabsHost.setAttribute("aria-label", `${titleCaseWords(tabsModuleKey)} views`);
+  tabsHost.classList.toggle("hidden", tabs.length <= 1 && Boolean(aliasModule));
   tabsHost.innerHTML = tabs
     .map(
       (tab) =>
-        `<button type="button" class="module-tab${getActiveWorkspace(moduleKey) === tab.key ? " active" : ""}" aria-pressed="${getActiveWorkspace(moduleKey) === tab.key}" data-workspace-key="${escapeHtml(tab.key)}">${escapeHtml(tab.label)}</button>`,
+        `<button type="button" class="module-tab${getActiveWorkspace(tabsModuleKey) === tab.key ? " active" : ""}" aria-pressed="${getActiveWorkspace(tabsModuleKey) === tab.key}" data-workspace-key="${escapeHtml(tab.key)}" data-tabs-module="${escapeHtml(tabsModuleKey)}">${escapeHtml(tab.label)}</button>`,
     )
     .join("");
 
@@ -2050,7 +2119,10 @@ function configureWorkspaceChrome(moduleKey, view) {
     hero.querySelector(".workspace-kicker").textContent =
       view.eyebrow || titleCaseWords(moduleKey);
     hero.querySelector(".workspace-title").textContent =
-      modules.find((module) => module.key === moduleKey)?.label || view.title;
+      (aliasModule && activeNav?.label) ||
+      view.title ||
+      modules.find((module) => module.key === moduleKey)?.label ||
+      titleCaseWords(moduleKey);
     hero.querySelector(".workspace-copy").textContent =
       view.description || workspaceDescriptions[moduleKey] || "";
     hero.querySelector(".workspace-actions").innerHTML = heroActions
@@ -2113,28 +2185,137 @@ const documentExportEntities = {
   "production-batch": "production-batches",
 };
 
+function isExportRowAction(action) {
+  return ["print", "pdf", "excel", "export"].includes(
+    String(action?.action || "").toLowerCase(),
+  );
+}
+
+function isViewRowAction(action) {
+  return String(action?.action || "").toLowerCase() === "view";
+}
+
+function isDangerRowAction(action) {
+  return ["suspend", "reject", "cancel", "delete", "return"].includes(
+    String(action?.action || "").toLowerCase(),
+  );
+}
+
+function isPrimaryRowAction(action) {
+  if (action?.primary === true) return true;
+  if (action?.primary === false) return false;
+  return [
+    "submit",
+    "pay",
+    "send",
+    "receive",
+    "issue",
+    "release",
+    "settle",
+    "create-po",
+    "create-voucher",
+    "edit",
+    "load-approve",
+    "approve",
+    "open",
+    "convert",
+  ].includes(String(action?.action || "").toLowerCase());
+}
+
+function renderRowActionControl(action, variant = "link") {
+  const danger = isDangerRowAction(action);
+  const className =
+    variant === "primary"
+      ? "primary-btn slim-btn table-action-primary"
+      : variant === "menu"
+        ? "table-action-menu-item" + (danger ? " danger-action" : "")
+        : "table-action-link" + (danger ? " danger-action" : "");
+  return (
+    '<button type="button" class="' +
+    className +
+    '" data-row-action="' +
+    escapeHtml(action.action) +
+    '" data-entity="' +
+    escapeHtml(action.entity) +
+    '" data-id="' +
+    escapeHtml(action.id) +
+    '"' +
+    (action.type ? ' data-type="' + escapeHtml(action.type) + '"' : "") +
+    ">" +
+    escapeHtml(action.label) +
+    "</button>"
+  );
+}
+
 function renderActionButtons(actions = []) {
-  const first = actions[0];
-  const extras =
+  const list = Array.isArray(actions) ? actions.filter(Boolean) : [];
+  if (!list.length) {
+    return '<div class="table-actions-wrap"></div>';
+  }
+
+  const first = list[0];
+  const autoExports =
     first && documentExportEntities[first.entity]
       ? [
           { entity: first.entity, id: first.id, label: "PDF", action: "pdf" },
           { entity: first.entity, id: first.id, label: "Excel", action: "excel" },
         ]
       : [];
-  const merged = [...actions, ...extras];
-  return (
-    `<div class="table-actions-wrap">` +
-    merged
-      .map(
-        (action) =>
-          `<button type="button" class="table-action-btn${["suspend", "reject", "cancel", "delete"].includes(action.action) ? " danger-action" : ""}" data-row-action="${escapeHtml(action.action)}" data-entity="${escapeHtml(
-            action.entity,
-          )}" data-id="${escapeHtml(action.id)}">${escapeHtml(action.label)}</button>`,
-      )
-      .join("") +
-    `</div>`
+
+  const seenExport = new Set();
+  const exports = [];
+  for (const action of [...list.filter(isExportRowAction), ...autoExports]) {
+    const key = String(action.action).toLowerCase();
+    if (seenExport.has(key)) continue;
+    seenExport.add(key);
+    exports.push(action);
+  }
+
+  const views = list.filter(isViewRowAction);
+  const workflow = list.filter(
+    (action) => !isViewRowAction(action) && !isExportRowAction(action),
   );
+
+  let primary = workflow.find((action) => action.primary === true);
+  if (!primary) {
+    primary = workflow.find(isPrimaryRowAction);
+  }
+  if (!primary && workflow.length === 1 && !isDangerRowAction(workflow[0])) {
+    primary = workflow[0];
+  }
+
+  const remainder = workflow.filter((action) => action !== primary);
+  const secondary = remainder.filter((action) => !isDangerRowAction(action)).slice(0, 1);
+  const overflow = remainder.filter((action) => !secondary.includes(action));
+
+  let html = '<div class="table-actions-wrap">';
+  if (primary) {
+    html += renderRowActionControl(primary, "primary");
+  }
+  for (const view of views) {
+    html += renderRowActionControl(view, "link");
+  }
+  for (const action of secondary) {
+    html += renderRowActionControl(action, "link");
+  }
+  if (exports.length) {
+    html +=
+      '<details class="table-action-menu">' +
+      '<summary class="table-action-menu-summary">Export</summary>' +
+      '<div class="table-action-menu-panel" role="menu">' +
+      exports.map((action) => renderRowActionControl(action, "menu")).join("") +
+      "</div></details>";
+  }
+  if (overflow.length) {
+    html +=
+      '<details class="table-action-menu">' +
+      '<summary class="table-action-menu-summary" aria-label="More actions">More</summary>' +
+      '<div class="table-action-menu-panel" role="menu">' +
+      overflow.map((action) => renderRowActionControl(action, "menu")).join("") +
+      "</div></details>";
+  }
+  html += "</div>";
+  return html;
 }
 
 function renderTable(targetId, columns, rows, options = {}) {
@@ -2570,9 +2751,20 @@ function syncPaymentVoucherSourceFields() {
   const cashSelect = form.elements.namedItem("cashRequisitionId");
   const invoiceField = document.getElementById("payment-voucher-invoice-field");
   const cashField = document.getElementById("payment-voucher-cash-field");
+  const purposeFieldWrap = document.getElementById("payment-voucher-purpose-field");
   const payeeField = document.getElementById("payment-voucher-payee");
+  const purposeField = form.elements.namedItem("purpose");
   const supplierIdField = form.elements.namedItem("supplierId");
-  if (!sourceType || !invoiceSelect || !cashSelect || !invoiceField || !cashField || !payeeField || !supplierIdField) {
+  if (
+    !sourceType ||
+    !invoiceSelect ||
+    !cashSelect ||
+    !invoiceField ||
+    !cashField ||
+    !payeeField ||
+    !purposeField ||
+    !supplierIdField
+  ) {
     return;
   }
 
@@ -2586,8 +2778,17 @@ function syncPaymentVoucherSourceFields() {
   const isCash = sourceType.value === "cash_requisition";
   invoiceField.classList.toggle("hidden", isCash);
   cashField.classList.toggle("hidden", !isCash);
+  purposeFieldWrap?.classList.toggle("hidden", false);
   invoiceSelect.required = !isCash;
   cashSelect.required = isCash;
+  purposeField.required = isCash;
+  purposeField.placeholder = isCash
+    ? "What this cash payment is for"
+    : "Optional line description on the voucher";
+  const purposeLabel = document.getElementById("payment-voucher-purpose-label");
+  if (purposeLabel) {
+    purposeLabel.textContent = isCash ? "Purpose" : "Payment description";
+  }
 
   const invoices = state.moduleData.procurement?.invoices || [];
   const cashRequisitions = state.moduleData.procurement?.cashRequisitions || [];
@@ -2598,32 +2799,62 @@ function syncPaymentVoucherSourceFields() {
     ? cashRequisitions.find((row) => Number(row.id) === Number(cashSelect.value))
     : null;
   const source = invoice || cashRequisition;
-  const autoNotes = invoice
-    ? `Settlement for supplier invoice ${invoice.invoice_number}`
-    : cashRequisition
-      ? `Payment for cash requisition ${cashRequisition.requisition_number}: ${cashRequisition.purpose}`
-      : "";
+  const autoPayee = invoice?.supplier_name || cashRequisition?.payee_name || "";
+  const autoPurpose = invoice
+    ? `Payment against supplier invoice ${invoice.invoice_number}`
+    : cashRequisition?.purpose || "";
 
   supplierIdField.value = invoice?.supplier_id || "";
-  payeeField.value = invoice?.supplier_name || cashRequisition?.payee_name || (source ? "Cash requisition" : "");
+
   if (source) {
+    if (!payeeField.value || payeeField.value === form.dataset.autofillPayee) {
+      payeeField.value = autoPayee;
+    }
+    form.dataset.autofillPayee = autoPayee;
+
+    if (!purposeField.value || purposeField.value === form.dataset.autofillPurpose) {
+      purposeField.value = autoPurpose;
+    }
+    form.dataset.autofillPurpose = autoPurpose;
+
     form.elements.namedItem("amount").value = invoice
-      ? Math.max(Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0), 0)
+      ? Math.max(
+          Number(invoice.total_amount || 0) - Number(invoice.amount_paid || 0),
+          0,
+        )
       : Number(cashRequisition.amount || 0);
-    form.elements.namedItem("paymentDate").value = new Date().toISOString().slice(0, 10);
-    form.elements.namedItem("paymentMethod").value = invoice
+    if (!form.elements.namedItem("paymentDate").value) {
+      form.elements.namedItem("paymentDate").value = new Date()
+        .toISOString()
+        .slice(0, 10);
+    }
+    if (
+      !form.elements.namedItem("paymentMethod").dataset.touched ||
+      form.elements.namedItem("paymentMethod").value ===
+        form.dataset.autofillMethod
+    ) {
+      form.elements.namedItem("paymentMethod").value = invoice
+        ? "Bank Transfer"
+        : cashRequisition.release_payment_method || "Cash";
+    }
+    form.dataset.autofillMethod = invoice
       ? "Bank Transfer"
       : cashRequisition.release_payment_method || "Cash";
-    form.elements.namedItem("referenceNumber").value = cashRequisition?.release_reference_number || "";
-    const notesField = form.elements.namedItem("notes");
-    if (!notesField.value || notesField.value === form.dataset.autofillNotes) {
-      notesField.value = autoNotes;
+
+    const referenceField = form.elements.namedItem("referenceNumber");
+    const autoReference = cashRequisition?.release_reference_number || "";
+    if (!referenceField.value || referenceField.value === form.dataset.autofillReference) {
+      referenceField.value = autoReference;
     }
-    form.dataset.autofillNotes = autoNotes;
+    form.dataset.autofillReference = autoReference;
   } else {
+    if (payeeField.value === form.dataset.autofillPayee) payeeField.value = "";
+    if (purposeField.value === form.dataset.autofillPurpose) purposeField.value = "";
     form.elements.namedItem("amount").value = "";
-    payeeField.value = "";
-    form.dataset.autofillNotes = "";
+    form.dataset.autofillPayee = "";
+    form.dataset.autofillPurpose = "";
+    form.dataset.autofillMethod = "";
+    form.dataset.autofillReference = "";
   }
 }
 
@@ -2921,7 +3152,13 @@ function readLocationState() {
   const moduleKey = rawModuleKey;
   if (modules.some((module) => module.key === moduleKey)) {
     state.activeModule = moduleKey;
-    if (tabKey && state.filters[moduleKey]) {
+    const mod = modules.find((entry) => entry.key === moduleKey);
+    if (mod?.procurementTab) {
+      state.filters.procurement = {
+        ...(state.filters.procurement || {}),
+        tab: mod.procurementTab,
+      };
+    } else if (tabKey && state.filters[moduleKey]) {
       state.filters[moduleKey].tab = tabKey;
     }
   }
@@ -2931,7 +3168,10 @@ function updateLocationState() {
   if (!state.user) {
     return;
   }
-  const tab = getActiveWorkspace(state.activeModule);
+  const activeNav = modules.find((entry) => entry.key === state.activeModule);
+  const tab = activeNav?.procurementTab
+    ? ""
+    : getActiveWorkspace(state.activeModule);
   const nextHash = `#${encodeURIComponent(state.activeModule)}${tab ? `/${encodeURIComponent(tab)}` : ""}`;
   if (window.location.hash !== nextHash) {
     window.history.pushState(null, "", nextHash);
@@ -2979,25 +3219,42 @@ function showModule(key) {
   state.activeModule = key;
   const module = modules.find((entry) => entry.key === key);
   const sectionKey = module?.sectionKey || key;
+  if (module?.procurementTab) {
+    state.filters.procurement = {
+      ...(state.filters.procurement || {}),
+      tab: module.procurementTab,
+    };
+    if (key === "cash-requisitions" && !state.filters["cash-requisitions"]?.tab) {
+      state.filters["cash-requisitions"] = {
+        ...(state.filters["cash-requisitions"] || {}),
+        tab: "pending",
+      };
+    }
+  }
   document.querySelectorAll(".module").forEach((section) => {
     section.classList.toggle("hidden", section.dataset.module !== sectionKey);
   });
   $("#page-kicker").textContent = module?.group || "Workspace";
   $("#page-title").textContent = module ? module.label : "Workspace";
   $("#page-copy").textContent = "";
-  document.title = `${module?.label || "Workspace"} · Cater`;
+  document.title = `${module?.label || "Workspace"} · Lefori`;
   renderNav();
   syncModuleTabs();
   updateLocationState();
   closeMobileNavigation();
   document.getElementById("workspace")?.scrollTo({ top: 0, behavior: "auto" });
   const globalSearch = document.getElementById("global-search");
-  const moduleSearch = document.querySelector(`[data-search-module="${key}"]`);
+  const moduleSearch =
+    document.querySelector(`[data-search-module="${sectionKey}"]`) ||
+    document.querySelector(`[data-search-module="${key}"]`);
   if (globalSearch) {
     globalSearch.value = moduleSearch?.value || "";
     globalSearch.placeholder =
       moduleSearch?.placeholder || "Search this workspace";
     globalSearch.disabled = !moduleSearch;
+  }
+  if (sectionKey === "procurement" && key !== "procurement") {
+    rerenderModule("procurement");
   }
 }
 
@@ -3378,7 +3635,8 @@ function downloadCsv(filename, columns, rows) {
 
 function syncModuleTabs() {
   document.querySelectorAll(".module").forEach((section) => {
-    const moduleKey = section.dataset.module;
+    const firstTab = section.querySelector(".module-tab[data-tabs-module]");
+    const moduleKey = firstTab?.dataset.tabsModule || section.dataset.module;
     const activeTab = getActiveWorkspace(moduleKey);
     section.querySelectorAll(".module-tab").forEach((tab, index) => {
       const tabKey =
@@ -3800,21 +4058,300 @@ function getContractSearchRows() {
   });
 }
 
+
+function approvalAgeLabel(value) {
+  if (!value) return "";
+  const then = new Date(value);
+  if (Number.isNaN(then.getTime())) return "";
+  const hours = Math.max(0, Math.floor((Date.now() - then.getTime()) / 3600000));
+  if (hours < 1) return "just now";
+  if (hours < 24) return hours + "h ago";
+  return Math.floor(hours / 24) + "d ago";
+}
+
+function buildApprovalActions(approvalRows) {
+  return (approvalRows || []).map((row) => ({
+    id: row.documentNumber || row.document_number || String(row.id),
+    title: "Approve " + (row.documentNumber || row.document_number || row.documentTypeLabel || "request"),
+    detail: [
+      row.documentTypeLabel || row.entityType || "Approval",
+      row.requesterName || row.requester_name,
+      approvalAgeLabel(row.createdAt || row.created_at),
+    ]
+      .filter(Boolean)
+      .join(" - "),
+    tone: "info",
+    verb: "Approve",
+    target: "approvals",
+    tab: "pending",
+    severity: 2,
+    count: 1,
+    source: "approvals",
+  }));
+}
+
+function mergeWorkQueueActions(serverActions, approvalRows) {
+  const attentionItems = [...buildApprovalActions(approvalRows), ...(serverActions || [])];
+  attentionItems.sort((a, b) => {
+    const as = Number(a.severity || 99);
+    const bs = Number(b.severity || 99);
+    if (as !== bs) return as - bs;
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
+  return attentionItems;
+}
+
+function renderExceptionChips(data, approvalCount) {
+  const stockRisks = Number(data.stockRiskItems != null
+    ? data.stockRiskItems
+    : Number(data.lowStockItems || 0) + Number(data.expiringStockItems || 0));
+  const chips = [
+    { source: "approvals", label: "Needs your approval", value: approvalCount, target: "approvals", tab: "pending" },
+    { source: "requisitions", label: "Open purchase requisitions", value: data.pendingPurchaseRequisitions, target: "procurement", tab: "purchase requisitions" },
+    { source: "orders", label: "POs awaiting receipt", value: data.pendingPurchaseOrders, target: "procurement", tab: "purchase orders" },
+    { source: "kitchen", label: "Kitchen waiting", value: data.pendingKitchenRequisitions, target: "kitchen", tab: "pending" },
+    { source: "stock", label: "Stock risks", value: stockRisks, target: "inventory", tab: "alerts" },
+    { source: "production", label: "Today's batches", value: data.todaysProductionBatches, target: "production", tab: "batches" },
+  ];
+  renderDashboardCards(
+    chips.map((chip) => {
+      const count = Number(chip.value || 0);
+      return {
+        label: chip.label,
+        value: formatNumber(count),
+        note: count === 0 ? "Clear" : "Open items",
+        target: chip.target,
+        tab: chip.tab,
+        tone: count === 0 ? "neutral" : count > 0 && (chip.source === "stock" || chip.source === "orders") ? "warning" : "info",
+        source: chip.source,
+      };
+    }),
+  );
+  const strip = $("#dashboard-metrics");
+  if (strip) {
+    strip.querySelectorAll(".stat-item").forEach((btn, index) => {
+      const chip = chips[index];
+      if (!chip) return;
+      btn.dataset.workSource = chip.source;
+      btn.classList.toggle("is-zero", Number(chip.value || 0) === 0);
+    });
+  }
+}
+
+function renderWorkQueue(attentionItems, deliveries, filterSource) {
+  const target = $("#dashboard-attention");
+  if (!target) return;
+  let rows = attentionItems || [];
+  if (filterSource) {
+    rows = rows.filter((item) => item.source === filterSource);
+  }
+  const visible = rows.slice(0, 8);
+  target.setAttribute("aria-busy", "false");
+  if (!visible.length) {
+    const next = (deliveries || [])[0];
+    const calm = next
+      ? "Queues clear - next delivery " + (next.location || next.client || "scheduled") + (next.schedule ? " - " + String(next.schedule).split(",")[0].trim() : "")
+      : "Queues clear - no deliveries scheduled today";
+    target.innerHTML =
+      '<button type="button" class="attention-item attention-clear" data-nav-target="contracts">' +
+      '<span class="attention-indicator attention-info" aria-hidden="true"></span>' +
+      '<span class="attention-copy"><strong>' + escapeHtml(calm) + "</strong>" +
+      "<span>Structure stays ready for the next exception.</span></span>" +
+      '<span class="attention-side"><span class="attention-count">0</span>' +
+      '<span class="attention-action">Open</span></span></button>';
+    return;
+  }
+  target.innerHTML = visible
+    .map((item) => {
+      const countLabel = Number(item.count) > 1 ? formatNumber(item.count) : "—";
+      return (
+        '<button type="button" class="attention-item" data-nav-target="' +
+        escapeHtml(item.target) +
+        '" data-nav-tab="' +
+        escapeHtml(item.tab || "") +
+        '" data-attention-tone="' +
+        escapeHtml(item.tone || "info") +
+        '" data-work-source="' +
+        escapeHtml(item.source || "") +
+        '"><span class="attention-indicator attention-' +
+        escapeHtml(item.tone || "info") +
+        '" aria-hidden="true"></span><span class="attention-copy"><strong>' +
+        escapeHtml(item.title) +
+        "</strong><span>" +
+        escapeHtml(item.detail || "") +
+        '</span></span><span class="attention-side"><span class="attention-count">' +
+        escapeHtml(String(countLabel)) +
+        '</span><span class="attention-action">' +
+        escapeHtml(item.verb || "Review") +
+        "</span></span></button>"
+      );
+    })
+    .join("");
+  if (rows.length > visible.length) {
+    target.innerHTML +=
+      '<p class="dashboard-more-note">Showing ' +
+      formatNumber(visible.length) +
+      " of " +
+      formatNumber(rows.length) +
+      " open actions.</p>";
+  }
+}
+
+
 function renderDashboardCards(metrics) {
   $("#dashboard-metrics").innerHTML = metrics
     .map(
       (metric) =>
-        `<button type="button" class="stat-item tone-${escapeHtml(metric.tone)}" ${
+        `<button type="button" class="stat-item tone-${escapeHtml(metric.tone)}${Number(String(metric.value).replace(/[^0-9.-]/g, "")) === 0 ? " is-zero" : ""}" ${
           metric.target
             ? `data-nav-target="${escapeHtml(metric.target)}"${metric.tab ? ` data-nav-tab="${escapeHtml(metric.tab)}"` : ""}`
             : ""
-        }>` +
+        }${metric.source ? ` data-work-source="${escapeHtml(metric.source)}"` : ""}>` +
         `<span class="stat-label">${escapeHtml(metric.label)}</span>` +
         `<strong class="stat-value">${escapeHtml(metric.value)}</strong>` +
         `<span class="stat-note">${escapeHtml(metric.note)}</span>` +
         `</button>`,
     )
     .join("");
+}
+
+function getDaysUntil(value) {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((date.getTime() - today.getTime()) / 86400000);
+}
+
+function renderDashboardStockRisks(lowStockRows, expiringRows) {
+  const target = $("#dashboard-stock-exceptions");
+  if (!target) {
+    return;
+  }
+
+  const risks = [];
+  (lowStockRows || []).forEach((row) => {
+    const current = Number(row.current_stock || 0);
+    const reorder = Number(row.reorder_level || row.minimum_stock_level || 0);
+    const threshold =
+      reorder > 0
+        ? `reorder level ${formatNumber(reorder)}`
+        : "no reorder threshold set";
+    risks.push({
+      tone: current <= 0 ? "danger" : "warning",
+      product: row.product_name,
+      detail:
+        current <= 0
+          ? `Out of stock · ${threshold}`
+          : `On hand ${formatNumber(current)} · ${threshold}`,
+      action: "Review stock",
+      sort: current <= 0 ? 0 : 1,
+    });
+  });
+  (expiringRows || []).forEach((row) => {
+    const days = getDaysUntil(row.expiry_date);
+    const expiryLabel =
+      days === null
+        ? "Expiry date unavailable"
+        : days < 0
+          ? `Expired ${formatNumber(Math.abs(days))} days ago`
+          : days === 0
+            ? "Expires today"
+            : `Expires in ${formatNumber(days)} days`;
+    risks.push({
+      tone: days !== null && days <= 0 ? "danger" : "warning",
+      product: row.product_name,
+      detail: `${expiryLabel} · ${formatNumber(row.quantity_remaining)} remaining`,
+      action: "Review expiry",
+      sort: days !== null && days <= 0 ? 0 : 2,
+    });
+  });
+
+  risks.sort((left, right) => left.sort - right.sort || left.product.localeCompare(right.product));
+  const visibleRisks = risks.slice(0, 6);
+  target.setAttribute("aria-busy", "false");
+  target.innerHTML = visibleRisks.length
+    ? '<div class="risk-list" role="list">' +
+      visibleRisks
+        .map(
+          (risk) =>
+            `<button type="button" class="risk-item risk-${risk.tone}" data-nav-target="inventory" data-nav-tab="alerts">` +
+            '<span class="risk-indicator" aria-hidden="true"></span>' +
+            '<span class="risk-copy"><strong>' +
+            escapeHtml(risk.product) +
+            "</strong><span>" +
+            escapeHtml(risk.detail) +
+            '</span></span><span class="risk-action">' +
+            escapeHtml(risk.action) +
+            " →</span></button>",
+        )
+        .join("") +
+      "</div>" +
+      (risks.length > visibleRisks.length
+        ? `<p class="dashboard-more-note">Showing ${formatNumber(visibleRisks.length)} of ${formatNumber(risks.length)} risks.</p>`
+        : "")
+    : '<div class="empty-state"><strong>Stock is within thresholds</strong><span>No shortage or expiry risks need attention.</span></div>';
+}
+
+function renderDashboardUsage(rows) {
+  const target = $("#dashboard-top-consumption");
+  if (!target) {
+    return;
+  }
+  const visibleRows = (rows || []).slice(0, 5);
+  if (!visibleRows.length) {
+    target.innerHTML = '<div class="empty-state"><strong>No issued stock yet</strong><span>Consumption rankings will appear after store issues are recorded.</span></div>';
+    return;
+  }
+  const max = Math.max(...visibleRows.map((row) => Number(row.total_issued || 0)), 1);
+  target.innerHTML = '<div class="usage-list">' +
+    visibleRows
+      .map((row) => {
+        const issued = Number(row.total_issued || 0);
+        const width = Math.max(4, Math.min(100, (issued / max) * 100));
+        return (
+          '<div class="usage-row"><div class="usage-row-top"><span>' +
+          escapeHtml(row.name || row.product_name || "Unnamed product") +
+          '</span><strong>' +
+          formatNumber(issued) +
+          '</strong></div><div class="usage-track" aria-hidden="true"><span style="width:' +
+          width.toFixed(1) +
+          '%"></span></div></div>'
+        );
+      })
+      .join("") +
+    '</div><p class="dashboard-more-note">Issued quantity · top five products</p>';
+}
+
+function renderDashboardPurchaseActivity(rows) {
+  const target = $("#dashboard-purchase-activity");
+  if (!target) {
+    return;
+  }
+  const visibleRows = (rows || []).slice(0, 4);
+  if (!visibleRows.length) {
+    target.innerHTML = '<div class="empty-state"><strong>No purchase activity</strong><span>Purchase orders will appear here as procurement begins.</span></div>';
+    return;
+  }
+  target.innerHTML = '<div class="pipeline-list">' +
+    visibleRows
+      .map(
+        (row) =>
+          '<div class="pipeline-row"><div><strong>' +
+          escapeHtml(titleCaseWords(row.purchase_type || "Purchase")) +
+          '</strong><span>' +
+          formatNumber(row.order_count) +
+          " orders</span></div><strong>" +
+          formatCurrency(row.order_value) +
+          "</strong></div>",
+      )
+      .join("") +
+    "</div>";
 }
 
 async function loadDashboard() {
@@ -3826,56 +4363,23 @@ async function loadDashboard() {
     renderPlaceholder(id, "Loading operations...");
   const [
     dashboardResponse,
-    lowStockResponse,
     auditResponse,
     contractsResponse,
     approvalsResponse,
   ] = await Promise.all([
     api("/api/dashboard"),
-    api("/api/inventory/low-stock"),
     api("/api/audit").catch((error) => ({ data: [], error: error.message })),
     api("/api/contracts/active"),
     canAccessApprovalQueue()
       ? api("/api/approvals/pending").catch((error) => ({ data: [], error: error.message }))
       : Promise.resolve({ data: [] }),
   ]);
-  const data = dashboardResponse.data;
-  const lowStockRows = lowStockResponse.data || [];
+  const data = dashboardResponse.data || {};
   const approvalRows = approvalsResponse.data || [];
-  renderDashboardCards([
-    {
-      label: "Active contracts",
-      value: formatNumber(data.activeContracts),
-      note: "Current client agreements",
-      target: "contracts",
-      tab: "active",
-      tone: "neutral",
-    },
-    {
-      label: "Contract demand",
-      value: formatNumber(data.weeklyExpectedDemand),
-      note: "Configured active contract quantities",
-      target: "contracts",
-      tab: "active",
-      tone: "neutral",
-    },
-    {
-      label: "Stock value",
-      value: formatCurrency(data.currentStockValue),
-      note: "Across central stores",
-      target: "inventory",
-      tone: "neutral",
-    },
-    {
-      label: "Recorded wastage",
-      value: formatCurrency(data.wastageValue),
-      note: "All recorded wastage",
-      target: "production",
-      tab: "waste",
-      tone: "neutral",
-    },
-  ]);
+  const attentionItems = mergeWorkQueueActions(data.topActions || [], canAccessApprovalQueue() ? approvalRows : []);
+  renderExceptionChips(data, approvalRows.length);
   const date = new Date();
+  const primaryRole = String(state.user?.roleNames?.[0] || "").trim();
   $("#dashboard-date-chip").dateTime = date.toISOString().slice(0, 10);
   $("#dashboard-date-chip").textContent = date.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -3883,91 +4387,39 @@ async function loadDashboard() {
     month: "long",
     year: "numeric",
   });
-  const attentionItems = [
-    ...(canAccessApprovalQueue()
-      ? [{
-          title: "Approvals",
-          detail: "Review requests waiting for your decision",
-          count: approvalRows.length,
-          target: "approvals",
-          tab: "pending",
-        }]
-      : []),
-    {
-      title: "Purchase requisitions",
-      detail: "Review draft and submitted requests",
-      count: data.pendingPurchaseRequisitions,
-      target: "procurement",
-      tab: "purchase requisitions",
-    },
-    {
-      title: "Purchase orders",
-      detail: "Follow up on orders awaiting receipt",
-      count: data.pendingPurchaseOrders,
-      target: "procurement",
-      tab: "purchase orders",
-    },
-    {
-      title: "Kitchen requests",
-      detail: "Review requests and issue approved stock",
-      count: data.pendingKitchenRequisitions,
-      target: "kitchen",
-      tab: "pending",
-    },
-    {
-      title: "Expiring stock",
-      detail: "Batches expiring within 30 days, including overdue stock",
-      count: data.expiringStockItems,
-      target: "inventory",
-      tab: "alerts",
-    },
-  ].filter((item) => Number(item.count) > 0);
-  $("#dashboard-attention").setAttribute("aria-busy", "false");
-  $("#dashboard-attention").innerHTML = attentionItems.length
-    ? attentionItems
-        .map(
-          (item) =>
-            '<button type="button" class="attention-item" data-nav-target="' +
-            item.target +
-            '" data-nav-tab="' +
-            item.tab +
-            '"><span><strong>' +
-            item.title +
-            "</strong><span>" +
-            item.detail +
-            '</span></span><span class="attention-count">' +
-            formatNumber(item.count) +
-            "</span></button>",
-        )
-        .join("")
-    : '<div class="empty-state"><strong>No pending work</strong><span>Purchasing and kitchen queues are clear.</span></div>';
-  $("#dashboard-production-summary").innerHTML =
-    '<button type="button" class="attention-item" data-nav-target="production"><span><strong>Today’s production</strong><span>Open scheduled batches and record output</span></span><span>' +
-    formatNumber(data.todaysProductionBatches) +
-    " batches →</span></button>";
-  renderTable(
-    "dashboard-stock-exceptions",
-    [
-      { key: "product_name", label: "Product" },
-      {
-        key: "current_stock",
-        label: "On hand",
-        numeric: true,
-        render: (row) => formatNumber(row.current_stock),
-      },
-      {
-        key: "minimum_stock_level",
-        label: "Minimum",
-        numeric: true,
-        render: (row) => formatNumber(row.minimum_stock_level),
-      },
-    ],
-    lowStockRows,
-    {
-      emptyMessage: "All products are above the low stock threshold.",
-      pageSize: 5,
-    },
-  );
+  $("#dashboard-scope").textContent = primaryRole
+    ? `All central stores · ${titleCaseWords(primaryRole)} view`
+    : "All central stores";
+  $("#dashboard-refresh-status").textContent = `Updated ${date.toLocaleTimeString("en-UG", {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  const deliveries = (contractsResponse.data || [])
+    .filter((row) => {
+      const deliveryDays = row.delivery_days || [];
+      return (
+        !deliveryDays.length ||
+        deliveryDays.some((day) => String(day).toLowerCase() === weekday.toLowerCase())
+      );
+    })
+    .map((row) => ({
+      contract: row.contract_number,
+      client: row.client_name,
+      location: row.location_name,
+      quantity: row.total_contract_quantity || row.expected_daily_quantity || 0,
+      schedule: (row.delivery_days || []).join(", ") || "View contract schedule",
+      status: row.status,
+    }));
+  state.moduleData.dashboard = {
+    ...data,
+    pendingApprovals: approvalRows.length,
+    attentionItems,
+    workFilter: null,
+    activities: [],
+    deliveries,
+  };
+  renderWorkQueue(attentionItems, deliveries, null);
   const activities = (auditResponse.data || [])
     .filter(
       (entry) =>
@@ -4009,14 +4461,9 @@ async function loadDashboard() {
     data.supplierBalances || [],
     { emptyMessage: "No supplier balances recorded.", pageSize: 5 },
   );
-  const deliveries = (contractsResponse.data || []).map((row) => ({
-    contract: row.contract_number,
-    client: row.client_name,
-    location: row.location_name,
-    quantity: row.total_contract_quantity || row.expected_daily_quantity || 0,
-    schedule: (row.delivery_days || []).join(", ") || "View contract schedule",
-    status: row.status,
-  }));
+  $("#dashboard-service-summary").textContent = deliveries.length
+    ? `${formatNumber(deliveries.reduce((total, row) => total + Number(row.quantity || 0), 0))} meals across ${formatNumber(deliveries.length)} client locations today.`
+    : "No active client deliveries are scheduled for today.";
   renderTable(
     "dashboard-upcoming-deliveries",
     [
@@ -4045,15 +4492,15 @@ async function loadDashboard() {
       },
     ],
     deliveries,
-    { emptyMessage: "No active delivery commitments.", pageSize: 5 },
+    {
+      emptyMessage: "No client deliveries are scheduled for today.",
+      label: "Today's service commitments",
+      pageSize: 5,
+    },
   );
-  state.moduleData.dashboard = {
-    ...data,
-    pendingApprovals: approvalRows.length,
-    activities,
-    deliveries,
-  };
+  state.moduleData.dashboard.activities = activities;
 }
+
 
 function approvalKey(record) {
   return `${record.entityType}:${record.id}`;
@@ -4086,8 +4533,11 @@ function approvalSearchText(record) {
     record.documentTypeLabel,
     record.requesterName,
     record.purpose,
+    record.payeeName,
+    record.sourceLabel,
     record.supplierName,
     record.storeName,
+    record.departmentName,
     record.status,
   ]
     .filter(Boolean)
@@ -4097,57 +4547,153 @@ function approvalSearchText(record) {
 
 function renderApprovalCard(record) {
   const key = approvalKey(record);
+  const isCashLike = ["cash_requisition", "payment_voucher"].includes(record.entityType);
   const visibleItems = (record.items || []).slice(0, 4);
   const extraItems = Math.max((record.items || []).length - visibleItems.length, 0);
-  const itemMarkup = visibleItems.length
-    ? `<ul class="approval-line-list">${visibleItems.map(renderApprovalLine).join("")}</ul>` +
-      (extraItems ? `<p class="approval-more-lines">+${extraItems} more line${extraItems === 1 ? "" : "s"}</p>` : "")
-    : `<p class="approval-purpose">${escapeHtml(record.purpose || "No additional details provided.")}</p>`;
+  let bodyMarkup;
+  if (isCashLike) {
+    bodyMarkup =
+      '<div class="approval-cash-body">' +
+      (record.payeeName
+        ? '<p class="approval-payee"><small>Payment to</small><strong>' +
+          escapeHtml(record.payeeName) +
+          "</strong></p>"
+        : "") +
+      '<p class="approval-purpose">' +
+      escapeHtml(record.purpose || "No purpose provided.") +
+      "</p>" +
+      (record.sourceLabel
+        ? '<p class="approval-source">' + escapeHtml(record.sourceLabel) + "</p>"
+        : "") +
+      "</div>";
+  } else if (visibleItems.length) {
+    bodyMarkup =
+      '<ul class="approval-line-list">' +
+      visibleItems.map(renderApprovalLine).join("") +
+      "</ul>" +
+      (extraItems
+        ? '<p class="approval-more-lines">+' +
+          extraItems +
+          " more line" +
+          (extraItems === 1 ? "" : "s") +
+          "</p>"
+        : "");
+  } else {
+    bodyMarkup =
+      '<p class="approval-purpose">' +
+      escapeHtml(record.purpose || "No additional details provided.") +
+      "</p>";
+  }
+
   const actionMarkup = record.canAct
-    ? `<div class="approval-actions">` +
-      `<button type="button" class="primary-btn slim-btn" data-approval-action="approve" data-approval-key="${escapeHtml(key)}">Approve</button>` +
-      `<button type="button" class="ghost-btn slim-btn danger-action" data-approval-action="reject" data-approval-key="${escapeHtml(key)}">Reject</button>` +
-      `</div>`
-    : `<div class="approval-blocked" role="note">${escapeHtml(record.blockedReason || "Another approver must review this request.")}</div>`;
+    ? '<div class="approval-actions">' +
+      '<button type="button" class="primary-btn slim-btn" data-approval-action="approve" data-approval-key="' +
+      escapeHtml(key) +
+      '">Approve</button>' +
+      '<button type="button" class="ghost-btn slim-btn danger-action" data-approval-action="reject" data-approval-key="' +
+      escapeHtml(key) +
+      '">Reject</button>' +
+      "</div>"
+    : '<div class="approval-blocked" role="note">' +
+      escapeHtml(record.blockedReason || "Another approver must review this request.") +
+      "</div>";
+
+  const thirdMeta = record.amount
+    ? '<span><small>Amount</small><strong>' +
+      escapeHtml(formatCurrency(record.amount)) +
+      "</strong></span>"
+    : record.storeName
+      ? '<span><small>Store</small><strong>' +
+        escapeHtml(record.storeName) +
+        "</strong></span>"
+      : '<span><small>Lines</small><strong>' +
+        escapeHtml(String(record.itemCount || 0)) +
+        "</strong></span>";
 
   return (
-    `<article class="approval-card${record.canAct ? "" : " approval-card-blocked"}" data-approval-key="${escapeHtml(key)}">` +
-    `<div class="approval-card-header">` +
-    `<div><p class="eyebrow">${escapeHtml(record.documentTypeLabel)}</p>` +
-    `<h3><button type="button" class="approval-document-link" data-approval-view="${escapeHtml(key)}">${escapeHtml(record.documentNumber || `Request ${record.id}`)}</button></h3></div>` +
-    `${renderStatusBadge(record.status)}` +
-    `</div>` +
-    `<div class="approval-meta">` +
-    `<span><small>Raised by</small><strong>${escapeHtml(record.requesterName)}</strong></span>` +
-    `<span><small>Date</small><strong>${escapeHtml(formatDate(record.requestedDate))}</strong></span>` +
-    `<span><small>${record.amount ? "Amount" : "Lines"}</small><strong>${record.amount ? escapeHtml(formatCurrency(record.amount)) : escapeHtml(String(record.itemCount || 0))}</strong></span>` +
-    `</div>` +
-    `<div class="approval-card-body">${itemMarkup}</div>` +
-    `<div class="approval-card-footer"><button type="button" class="ghost-btn slim-btn" data-approval-view="${escapeHtml(key)}">View details</button>${actionMarkup}</div>` +
-    `</article>`
+    '<article class="approval-card' +
+    (record.canAct ? "" : " approval-card-blocked") +
+    '" data-approval-key="' +
+    escapeHtml(key) +
+    '">' +
+    '<div class="approval-card-header">' +
+    '<div><p class="eyebrow">' +
+    escapeHtml(record.documentTypeLabel) +
+    "</p>" +
+    '<h3><button type="button" class="approval-document-link" data-approval-view="' +
+    escapeHtml(key) +
+    '">' +
+    escapeHtml(record.documentNumber || "Request " + record.id) +
+    "</button></h3></div>" +
+    renderStatusBadge(record.status) +
+    "</div>" +
+    '<div class="approval-meta">' +
+    '<span><small>Raised by</small><strong>' +
+    escapeHtml(record.requesterName) +
+    "</strong></span>" +
+    '<span><small>Date</small><strong>' +
+    escapeHtml(formatDate(record.requestedDate)) +
+    "</strong></span>" +
+    thirdMeta +
+    "</div>" +
+    '<div class="approval-card-body">' +
+    bodyMarkup +
+    "</div>" +
+    '<div class="approval-card-footer"><button type="button" class="ghost-btn slim-btn" data-approval-view="' +
+    escapeHtml(key) +
+    '">View details</button>' +
+    actionMarkup +
+    "</div>" +
+    "</article>"
   );
 }
 
 function openApprovalDetails(record) {
   const lines = (record.items || []).length
-    ? `<ul class="approval-detail-lines">${record.items.map(renderApprovalLine).join("")}</ul>`
-    : `<div class="empty-state">No line items on this request.</div>`;
-  const links = (
-    `<div class="approval-detail-grid">` +
-    `<div><span>Raised by</span><strong>${escapeHtml(record.requesterName)}</strong></div>` +
-    `<div><span>Date</span><strong>${escapeHtml(formatDate(record.requestedDate))}</strong></div>` +
-    `<div><span>Status</span><strong>${renderStatusBadge(record.status)}</strong></div>` +
-    `<div><span>Amount</span><strong>${escapeHtml(record.amount ? formatCurrency(record.amount) : "Not specified")}</strong></div>` +
-    `</div>`
-  );
+    ? '<ul class="approval-detail-lines">' + record.items.map(renderApprovalLine).join("") + "</ul>"
+    : '<div class="empty-state">No line items on this request.</div>';
+  const links =
+    '<div class="approval-detail-grid">' +
+    "<div><span>Raised by</span><strong>" +
+    escapeHtml(record.requesterName) +
+    "</strong></div>" +
+    "<div><span>Date</span><strong>" +
+    escapeHtml(formatDate(record.requestedDate)) +
+    "</strong></div>" +
+    "<div><span>Status</span><strong>" +
+    renderStatusBadge(record.status) +
+    "</strong></div>" +
+    "<div><span>Amount</span><strong>" +
+    escapeHtml(record.amount ? formatCurrency(record.amount) : "Not specified") +
+    "</strong></div>" +
+    (record.payeeName
+      ? "<div><span>Payment to</span><strong>" + escapeHtml(record.payeeName) + "</strong></div>"
+      : "") +
+    (record.sourceLabel
+      ? "<div><span>Source</span><strong>" + escapeHtml(record.sourceLabel) + "</strong></div>"
+      : "") +
+    (record.storeName
+      ? "<div><span>Store</span><strong>" + escapeHtml(record.storeName) + "</strong></div>"
+      : "") +
+    "</div>";
   openDetailModal(
-    `${record.documentTypeLabel} · ${record.documentNumber || `Request ${record.id}`}`,
+    record.documentTypeLabel + " — " + (record.documentNumber || "Request " + record.id),
     links +
-      `<section class="detail-section"><h4>Request details</h4><p>${escapeHtml(record.purpose || "No additional details provided.")}</p></section>` +
-      `<section class="detail-section"><h4>Items</h4>${lines}</section>` +
+      '<section class="detail-section"><h4>Request details</h4><p>' +
+      escapeHtml(record.purpose || "No additional details provided.") +
+      "</p></section>" +
+      '<section class="detail-section"><h4>Items</h4>' +
+      lines +
+      "</section>" +
       (record.canAct
-        ? `<div class="approval-modal-actions"><button type="button" class="primary-btn" data-approval-action="approve" data-approval-key="${escapeHtml(approvalKey(record))}">Approve</button><button type="button" class="ghost-btn danger-action" data-approval-action="reject" data-approval-key="${escapeHtml(approvalKey(record))}">Reject</button></div>`
-        : `<div class="approval-blocked" role="note">${escapeHtml(record.blockedReason || "Another approver must review this request.")}</div>`),
+        ? '<div class="approval-modal-actions"><button type="button" class="primary-btn" data-approval-action="approve" data-approval-key="' +
+          escapeHtml(approvalKey(record)) +
+          '">Approve</button><button type="button" class="ghost-btn danger-action" data-approval-action="reject" data-approval-key="' +
+          escapeHtml(approvalKey(record)) +
+          '">Reject</button></div>'
+        : '<div class="approval-blocked" role="note">' +
+          escapeHtml(record.blockedReason || "Another approver must review this request.") +
+          "</div>"),
   );
 }
 
@@ -4176,7 +4722,24 @@ async function executeApprovalAction(record, action, reason = "") {
   if (!$("#detail-modal").classList.contains("hidden")) {
     closeDetailModal();
   }
-  await Promise.all([loadApprovals(), loadDashboard()]);
+  await Promise.all([
+    loadApprovals(),
+    loadDashboard(),
+    loadProcurement().catch(() => null),
+    typeof loadInventory === "function" ? loadInventory().catch(() => null) : Promise.resolve(),
+    typeof loadKitchen === "function" ? loadKitchen().catch(() => null) : Promise.resolve(),
+  ]);
+  if (
+    action === "approve" &&
+    record.entityType === "cash_requisition" &&
+    state.activeModule === "cash-requisitions"
+  ) {
+    state.filters["cash-requisitions"] = {
+      ...(state.filters["cash-requisitions"] || {}),
+      tab: "in progress",
+    };
+    renderProcurement();
+  }
   showToast(`${record.documentTypeLabel} ${action === "approve" ? "approved" : "rejected"}`);
 }
 
@@ -4649,7 +5212,15 @@ function renderProcurement() {
     const cashRequisition = cashRequisitionRows.find(
       (entry) => Number(entry.id) === Number(row.cash_requisition_id),
     );
-    return row.payee_name || row.supplier_name || row.cash_payee_name || supplier?.name || invoice?.supplier_name || cashRequisition?.payee_name || "-";
+    return (
+      row.payee_name ||
+      row.supplier_name ||
+      row.cash_payee_name ||
+      supplier?.name ||
+      invoice?.supplier_name ||
+      cashRequisition?.payee_name ||
+      "-"
+    );
   };
 
   const pendingRequisitions = requisitionRows.filter(
@@ -4679,14 +5250,23 @@ function renderProcurement() {
     (row) => Number(row.total_amount || 0) - Number(row.amount_paid || 0),
   );
 
+  const cashView = getActiveWorkspace("cash-requisitions") || "pending";
   configureWorkspaceChrome("procurement", {
-    eyebrow: "Procurement",
+    eyebrow: state.activeModule === "cash-requisitions" ? "Supply chain" : state.activeModule === "payment-vouchers" ? "Supply chain" : "Procurement",
     title: titleCaseWords(activeTab),
     description:
       activeTab === "purchase requisitions"
         ? "Create the request, submit it for approval, then create the purchase order after approval."
         : activeTab === "invoices"
           ? "Link a purchase order to carry over the supplier, terms, receipt, and total. Credit invoices need a due date."
+          : activeTab === "cash requisitions"
+            ? cashView === "pending"
+              ? "Draft, submitted, and returned cash requests waiting for the next action."
+              : cashView === "in progress"
+                ? "Approved requests ready to release cash or prepare a payment voucher."
+                : cashView === "closed"
+                  ? "Rejected or fully settled cash requisitions."
+                  : "All cash requisitions across the workflow."
           : activeTab === "payments"
             ? "Prepare payment vouchers from supplier invoices or approved cash requisitions."
             : "Manage purchase orders, receipts, invoices, and payment vouchers in one place.",
@@ -4888,12 +5468,13 @@ function renderProcurement() {
               action: "view",
             },
           ];
-          if (["draft", "submitted", "pending"].includes(status)) {
+          if (status === "draft") {
             actions.push({
               entity: "purchase-requisition",
               id: row.id,
-              label: "Approve",
-              action: "approve",
+              label: "Submit",
+              action: "submit",
+              primary: true,
             });
           }
           if (status === "approved") {
@@ -5286,13 +5867,9 @@ function renderProcurement() {
           ];
           if (["draft", "returned for revision"].includes(status)) {
             actions.push({ entity: "cash-requisition", id: row.id, label: "Edit", action: "edit" });
-            actions.push({ entity: "cash-requisition", id: row.id, label: "Submit", action: "submit" });
+            actions.push({ entity: "cash-requisition", id: row.id, label: "Submit", action: "submit", primary: true });
           }
-          if (status === "submitted" && hasPermission(PROCUREMENT_REQUISITION_APPROVAL_PERMISSION)) {
-            actions.push({ entity: "cash-requisition", id: row.id, label: "Approve", action: "approve" });
-            actions.push({ entity: "cash-requisition", id: row.id, label: "Return", action: "return" });
-            actions.push({ entity: "cash-requisition", id: row.id, label: "Reject", action: "reject" });
-          }
+          // Approve / return / reject for submitted cash requisitions live on Approvals.
           if (["approved", "cash released"].includes(status) && !row.payment_voucher_number) {
             actions.push({ entity: "cash-requisition", id: row.id, label: "Prepare Voucher", action: "create-voucher" });
           }
@@ -5306,16 +5883,29 @@ function renderProcurement() {
         },
       },
     ];
-    workspaceRows = cashRequisitionRows.filter((row) =>
-      matchesSearch(row, search, [
-        "requisition_number",
-        "department_name",
-        "payee_name",
-        "purpose",
-        "status",
-        "request_date",
-      ]),
-    );
+    const cashView = getActiveWorkspace("cash-requisitions") || "pending";
+    workspaceRows = cashRequisitionRows.filter((row) => {
+      const status = String(row.status || "").toLowerCase();
+      const viewMatch =
+        cashView === "all" ||
+        (cashView === "pending" &&
+          ["draft", "submitted", "returned for revision"].includes(status)) ||
+        (cashView === "in progress" &&
+          ["approved", "cash released"].includes(status)) ||
+        (cashView === "closed" &&
+          ["rejected", "closed", "cancelled"].includes(status));
+      return (
+        viewMatch &&
+        matchesSearch(row, search, [
+          "requisition_number",
+          "department_name",
+          "payee_name",
+          "purpose",
+          "status",
+          "request_date",
+        ])
+      );
+    });
     workspaceOptions = {
       emptyMessage: "No cash requisitions match the current filter.",
     };
@@ -5372,14 +5962,11 @@ function renderProcurement() {
             { entity: "payment-voucher", id: row.id, label: "Print", action: "print" },
           ];
           if (status === "draft") {
-            actions.push({ entity: "payment-voucher", id: row.id, label: "Submit", action: "submit" });
+            actions.push({ entity: "payment-voucher", id: row.id, label: "Submit", action: "submit", primary: true });
           }
-          if (status === "submitted") {
-            actions.push({ entity: "payment-voucher", id: row.id, label: "Approve", action: "approve" });
-            actions.push({ entity: "payment-voucher", id: row.id, label: "Reject", action: "reject" });
-          }
+          // Approve / reject for submitted payment vouchers live on Approvals.
           if (status === "approved") {
-            actions.push({ entity: "payment-voucher", id: row.id, label: "Mark Paid", action: "pay" });
+            actions.push({ entity: "payment-voucher", id: row.id, label: "Mark Paid", action: "pay", primary: true });
           }
           return renderActionButtons(actions);
         },
@@ -5458,12 +6045,13 @@ function renderProcurement() {
               action: "view",
             },
           ];
-          if (["draft", "submitted", "pending"].includes(status)) {
+          if (status === "draft") {
             actions.push({
               entity: "purchase-requisition",
               id: row.id,
-              label: "Approve",
-              action: "approve",
+              label: "Submit",
+              action: "submit",
+              primary: true,
             });
           }
           if (status === "approved") {
@@ -5757,15 +6345,21 @@ function renderInventory() {
       {
         key: "actions",
         label: "Actions",
-        render: (row) =>
-          renderActionButtons([
-            {
+        render: (row) => {
+          const status = String(row.status || "").toLowerCase();
+          const actions = [];
+          if (status === "draft") {
+            actions.push({
               entity: "stock-adjustment",
               id: row.id,
-              label: "Approve",
-              action: "approve",
-            },
-          ]),
+              label: "Submit",
+              action: "submit",
+              primary: true,
+            });
+          }
+          // Approve submitted stock adjustments on Approvals.
+          return renderActionButtons(actions);
+        },
       },
     ],
     adjustmentRows,
@@ -5927,15 +6521,20 @@ function renderInventory() {
       {
         key: "actions",
         label: "Actions",
-        render: (row) =>
-          renderActionButtons([
-            {
+        render: (row) => {
+          const status = String(row.status || "").toLowerCase();
+          const actions = [];
+          if (status === "draft") {
+            actions.push({
               entity: "stock-adjustment",
               id: row.id,
-              label: "Approve",
-              action: "approve",
-            },
-          ]),
+              label: "Submit",
+              action: "submit",
+            });
+          }
+          // Approve submitted stock adjustments on Approvals.
+          return renderActionButtons(actions);
+        },
       },
     ];
     workspaceRows = adjustmentRows.filter((row) =>
@@ -6239,14 +6838,7 @@ function renderKitchen() {
               action: "submit",
             });
           }
-          if (["submitted", "pending"].includes(status)) {
-            actions.push({
-              entity: "kitchen-requisition",
-              id: row.id,
-              label: "Approve",
-              action: "load-approve",
-            });
-          }
+          // Approve/Reject live on Approvals for submitted kitchen requisitions.
           if (status === "approved") {
             actions.push({
               entity: "kitchen-requisition",
@@ -6424,14 +7016,7 @@ function renderKitchen() {
               action: "submit",
             });
           }
-          if (["submitted", "pending"].includes(status)) {
-            actions.push({
-              entity: "kitchen-requisition",
-              id: row.id,
-              label: "Approve",
-              action: "load-approve",
-            });
-          }
+          // Approve/Reject live on Approvals for submitted kitchen requisitions.
           if (status === "approved") {
             actions.push({
               entity: "kitchen-requisition",
@@ -7373,6 +7958,24 @@ function getReportCards() {
       tabs: ["procurement", "management"],
     },
     {
+      key: "purchases",
+      title: "Purchase Report (LPO / PO)",
+      summary: "Purchase orders and LPOs with suppliers, values, and status.",
+      tabs: ["procurement", "finance", "management"],
+    },
+    {
+      key: "cash-requisitions",
+      title: "Cash Requisition Report",
+      summary: "Cash requests, payees, amounts, release, and settlement.",
+      tabs: ["finance", "procurement", "management"],
+    },
+    {
+      key: "all-purchases",
+      title: "All Purchases",
+      summary: "Combined purchases from LPOs/POs and cash requisitions.",
+      tabs: ["finance", "procurement", "management"],
+    },
+    {
       key: "finance",
       title: "Supplier Payables",
       summary: "Supplier invoices, payments, and aging.",
@@ -7437,12 +8040,12 @@ function renderReports() {
         `<article class="report-card">` +
         `<h4>${escapeHtml(card.title)}</h4>` +
         `<p>${escapeHtml(card.summary)}</p>` +
-        `<div class="report-actions">` +
-        `<button type="button" class="ghost-btn slim-btn" data-row-action="preview" data-entity="report" data-id="${escapeHtml(card.key)}">Preview</button>` +
-        `<button type="button" class="ghost-btn slim-btn" data-row-action="pdf" data-entity="report" data-id="${escapeHtml(card.key)}">PDF</button>` +
-        `<button type="button" class="ghost-btn slim-btn" data-row-action="excel" data-entity="report" data-id="${escapeHtml(card.key)}">Excel</button>` +
-        `<button type="button" class="ghost-btn slim-btn" data-row-action="export" data-entity="report" data-id="${escapeHtml(card.key)}">CSV</button>` +
-        `</div>` +
+        renderActionButtons([
+          { entity: "report", id: card.key, label: "Preview", action: "preview", primary: true },
+          { entity: "report", id: card.key, label: "PDF", action: "pdf" },
+          { entity: "report", id: card.key, label: "Excel", action: "excel" },
+          { entity: "report", id: card.key, label: "CSV", action: "export" },
+        ]) +
         `</article>`,
     )
     .join("");
@@ -7675,14 +8278,23 @@ function getConfigurationColumns(type) {
     key: "actions",
     label: "Actions",
     render: (row) =>
-      `<div class="table-actions">` +
-      `<button type="button" class="ghost-btn slim-btn" data-row-action="edit" data-entity="configuration" data-type="${escapeHtml(type)}" data-id="${escapeHtml(
-        row.id,
-      )}">Edit</button>` +
-      `<button type="button" class="ghost-btn slim-btn" data-row-action="toggle" data-entity="configuration" data-type="${escapeHtml(type)}" data-id="${escapeHtml(
-        row.id,
-      )}">${row.is_active ? "Deactivate" : "Activate"}</button>` +
-      `</div>`,
+      renderActionButtons([
+        {
+          entity: "configuration",
+          id: row.id,
+          type: type,
+          label: "Edit",
+          action: "edit",
+          primary: true,
+        },
+        {
+          entity: "configuration",
+          id: row.id,
+          type: type,
+          label: row.is_active ? "Deactivate" : "Activate",
+          action: "toggle",
+        },
+      ]),
   };
   const activeColumn = {
     key: "is_active",
@@ -8388,6 +9000,181 @@ function renderSettingsWorkspace() {
   );
 }
 
+
+const APP_NAME = "Lefori";
+
+function brandingLogoDataUri(profile = {}) {
+  if (profile?.logoData && profile?.logoMimeType) {
+    return `data:${profile.logoMimeType};base64,${profile.logoData}`;
+  }
+  return null;
+}
+
+function applyChromeBranding(profile = {}) {
+  const uri = brandingLogoDataUri(profile);
+  const marks = [document.getElementById("sidebar-brand-mark")].filter(Boolean);
+  for (const mark of marks) {
+    if (uri) {
+      mark.classList.add("has-logo");
+      mark.innerHTML = `<img src="${uri}" alt="">`;
+    } else {
+      mark.classList.remove("has-logo");
+      mark.textContent = "L";
+    }
+  }
+}
+
+const BRANDING_LOGO_MAX_BYTES = 2_000_000;
+let brandingLogoDraft = {
+  logoData: null,
+  logoMimeType: null,
+  clearLogo: false,
+};
+
+function renderBrandingLogoPreview() {
+  const preview = document.getElementById("branding-logo-preview");
+  if (!preview) return;
+  if (brandingLogoDraft.logoData && brandingLogoDraft.logoMimeType) {
+    preview.innerHTML =
+      '<img src="data:' +
+      brandingLogoDraft.logoMimeType +
+      ";base64," +
+      brandingLogoDraft.logoData +
+      '" alt="Business logo">';
+    return;
+  }
+  preview.innerHTML = '<span class="branding-logo-empty">No logo</span>';
+}
+
+async function loadBusinessBranding() {
+  const form = document.getElementById("business-branding-form");
+  if (!form) return;
+
+  const response = await api("/api/settings");
+  const bundle = response.data || {};
+  state.moduleData.settingsBundle = bundle;
+  const profile = bundle.profile || {};
+
+  form.businessName.value = profile.businessName || "";
+  form.businessPhone.value = profile.businessPhone || "";
+  form.businessLocation.value = profile.businessLocation || "";
+  form.ownerEmail.value = profile.ownerEmail || "";
+  form.businessType.value =
+    profile.businessType === "restaurant" ? "restaurant" : "catering";
+
+  brandingLogoDraft = {
+    logoData: profile.logoData || null,
+    logoMimeType: profile.logoMimeType || null,
+    clearLogo: false,
+  };
+  renderBrandingLogoPreview();
+    applyChromeBranding(profile);
+  setFormStatus("branding-status", "");
+}
+
+async function saveBusinessBranding(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!hasRole("admin")) {
+    setFormStatus("branding-status", "Only admins can update branding.", "error");
+    return;
+  }
+
+  const profile = {
+    businessName: form.businessName.value.trim(),
+    businessPhone: form.businessPhone.value.trim(),
+    businessLocation: form.businessLocation.value.trim(),
+    ownerEmail: form.ownerEmail.value.trim(),
+    businessType: form.businessType.value,
+  };
+
+  if (brandingLogoDraft.clearLogo) {
+    profile.clearLogo = true;
+    profile.logoData = null;
+    profile.logoMimeType = null;
+  } else if (brandingLogoDraft.logoData && brandingLogoDraft.logoMimeType) {
+    profile.logoData = brandingLogoDraft.logoData;
+    profile.logoMimeType = brandingLogoDraft.logoMimeType;
+  }
+
+  setFormStatus("branding-status", "Saving…", "info");
+  try {
+    const response = await api("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        profile,
+        settings: state.moduleData.settingsBundle?.settings || {},
+      }),
+    });
+    state.moduleData.settingsBundle = response.data;
+    const saved = response.data?.profile || {};
+    brandingLogoDraft = {
+      logoData: saved.logoData || null,
+      logoMimeType: saved.logoMimeType || null,
+      clearLogo: false,
+    };
+    renderBrandingLogoPreview();
+    applyChromeBranding(saved);
+    setFormStatus("branding-status", "Branding saved. Logo appears in the sidebar and on new exports.", "success");
+    showToast("Business branding saved");
+  } catch (error) {
+    setFormStatus("branding-status", error.message, "error");
+  }
+}
+
+function bindBusinessBrandingControls() {
+  const form = document.getElementById("business-branding-form");
+  const pick = document.getElementById("branding-logo-pick");
+  const clear = document.getElementById("branding-logo-clear");
+  const input = document.getElementById("branding-logo-input");
+  if (!form || form.dataset.bound === "1") return;
+  form.dataset.bound = "1";
+
+  form.addEventListener("submit", saveBusinessBranding);
+  pick?.addEventListener("click", () => input?.click());
+  clear?.addEventListener("click", () => {
+    brandingLogoDraft = { logoData: null, logoMimeType: null, clearLogo: true };
+    if (input) input.value = "";
+    renderBrandingLogoPreview();
+    setFormStatus("branding-status", "Logo will be removed when you save.", "info");
+  });
+  input?.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > BRANDING_LOGO_MAX_BYTES) {
+      setFormStatus("branding-status", "Logo must be under 2 MB.", "error");
+      input.value = "";
+      return;
+    }
+    const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+    if (!allowed.includes(file.type)) {
+      setFormStatus("branding-status", "Use PNG, JPEG, WebP, or SVG.", "error");
+      input.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!match) {
+        setFormStatus("branding-status", "Could not read that image.", "error");
+        return;
+      }
+      brandingLogoDraft = {
+        logoData: match[2],
+        logoMimeType: match[1],
+        clearLogo: false,
+      };
+      renderBrandingLogoPreview();
+      setFormStatus("branding-status", "Logo ready — click Save branding.", "info");
+    };
+    reader.onerror = () => {
+      setFormStatus("branding-status", "Could not read that image.", "error");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function loadSettings() {
   const [usersResponse, rolesResponse, auditResponse] = await Promise.all([
     api("/api/auth/users"),
@@ -8436,6 +9223,10 @@ async function loadSettings() {
 
   await loadSecurity();
   await loadAudit();
+  bindBusinessBrandingControls();
+  await loadBusinessBranding().catch((error) => {
+    setFormStatus("branding-status", error.message, "error");
+  });
   renderSettingsWorkspace();
 }
 
@@ -8694,6 +9485,20 @@ async function handlePurchaseRequisitionAction(action, id) {
     return;
   }
 
+  if (action === "submit") {
+    await api(`/api/procurement/purchase-requisitions/${id}/submit`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    await Promise.all([
+      loadProcurement(),
+      loadDashboard(),
+      typeof loadApprovals === "function" ? loadApprovals().catch(() => null) : Promise.resolve(),
+    ]);
+    showToast("Purchase requisition sent to Approvals");
+    return;
+  }
+
   if (action === "load") {
     populateForm("purchase-requisition-approve-form", {
       purchaseRequisitionId: response.data.header.id,
@@ -8847,9 +9652,14 @@ async function handlePaymentVoucherAction(action, id) {
     method: "POST",
     body: JSON.stringify({}),
   });
-  await Promise.all([loadProcurement(), loadSuppliers(), loadDashboard()]);
+  await Promise.all([
+    loadProcurement(),
+    loadSuppliers(),
+    loadDashboard(),
+    typeof loadApprovals === "function" ? loadApprovals().catch(() => null) : Promise.resolve(),
+  ]);
   const labels = {
-    submit: "submitted",
+    submit: "sent to Approvals",
     approve: "approved",
     reject: "rejected",
     pay: "marked paid",
@@ -8947,8 +9757,24 @@ async function handleCashRequisitionAction(action, id) {
       method: "POST",
       body: JSON.stringify({}),
     });
-    await Promise.all([loadProcurement(), loadDashboard()]);
-    showToast(`Cash requisition ${action}d`);
+    if (action === "approve" && state.activeModule === "cash-requisitions") {
+      state.filters["cash-requisitions"] = {
+        ...(state.filters["cash-requisitions"] || {}),
+        tab: "in progress",
+      };
+    }
+    await Promise.all([
+      loadProcurement(),
+      loadDashboard(),
+      canAccessApprovalQueue()
+        ? loadApprovals().catch(() => null)
+        : Promise.resolve(),
+    ]);
+    showToast(
+      action === "approve"
+        ? "Cash requisition approved — moved to Approved / release"
+        : "Cash requisition submitted",
+    );
   }
 }
 
@@ -9028,7 +9854,7 @@ async function handleKitchenRequisitionAction(action, id) {
       body: JSON.stringify({}),
     });
     await Promise.all([loadKitchen(), loadDashboard()]);
-    showToast("Kitchen requisition submitted");
+    showToast("Kitchen requisition sent to Approvals");
     return;
   }
 
@@ -9278,7 +10104,19 @@ async function handleRowAction(action, entity, id, type = null) {
     return;
   }
   if (entity === "stock-adjustment") {
-    handleStockAdjustmentApprove(id);
+    if (action === "submit") {
+      api("/api/inventory/stock-adjustments/" + id + "/submit", {
+        method: "POST",
+        body: JSON.stringify({}),
+      })
+        .then(() => Promise.all([loadInventory(), loadApprovals().catch(() => null), loadDashboard()]))
+        .then(() => showToast("Stock adjustment submitted"))
+        .catch((error) => showToast(error.message || "Submit failed", "error"));
+      return;
+    }
+    if (action === "approve") {
+      handleStockAdjustmentApprove(id);
+    }
     return;
   }
   if (entity === "report") {
@@ -9419,7 +10257,8 @@ function handleModuleTab(moduleKey, value) {
     ...(state.filters[moduleKey] || {}),
     tab: value,
   };
-  rerenderModule(moduleKey);
+  const nav = modules.find((entry) => entry.key === moduleKey);
+  rerenderModule(nav?.sectionKey || moduleKey);
   updateLocationState();
 }
 
@@ -9430,6 +10269,15 @@ function bindActions() {
       return;
     }
     showModule(button.dataset.module);
+    const navModule = modules.find((entry) => entry.key === button.dataset.module);
+    if (
+      (button.dataset.module === "procurement" || navModule?.procurementTab) &&
+      !state.moduleData.procurement
+    ) {
+      loadProcurement().catch((error) =>
+        showToast(`Procurement failed: ${error.message}`, "error"),
+      );
+    }
     if (
       button.dataset.module === "approval-matrix" &&
       !state.moduleData.approvalMatrix
@@ -9731,7 +10579,12 @@ function bindActions() {
       return;
     }
 
-    const rowActionButton = event.target.closest("[data-row-action]");
+    document.querySelectorAll("details.table-action-menu[open]").forEach((menu) => {
+    if (!menu.contains(event.target)) {
+      menu.removeAttribute("open");
+    }
+  });
+  const rowActionButton = event.target.closest("[data-row-action]");
     if (rowActionButton) {
       if (rowActionButton.dataset.busy === "true" || rowActionButton.disabled)
         return;
@@ -9834,7 +10687,7 @@ function bindActions() {
         return;
       }
       handleModuleTab(
-        section.dataset.module,
+        tabButton.dataset.tabsModule || section.dataset.module,
         tabButton.dataset.workspaceKey ||
           tabButton.textContent.trim().toLowerCase(),
       );
@@ -10559,7 +11412,12 @@ function bindActions() {
       body: JSON.stringify({ reason: form.get("reason") }),
     });
     resetForm("cash-requisition-action-form");
-    await loadProcurement();
+    closeFormModal({ restoreParent: false });
+    await Promise.all([
+      loadProcurement(),
+      canAccessApprovalQueue() ? loadApprovals().catch(() => null) : Promise.resolve(),
+      loadDashboard(),
+    ]);
     showToast(`Cash requisition ${action}d`);
   });
 
@@ -10636,12 +11494,21 @@ function bindActions() {
   });
 
   bindForm("payment-voucher-form", async (form) => {
+    const sourceType = form.get("sourceType");
     await api("/api/procurement-system/payment-vouchers", {
       method: "POST",
       body: JSON.stringify({
         supplierId: form.get("supplierId") ? Number(form.get("supplierId")) : null,
-        supplierInvoiceId: form.get("supplierInvoiceId") ? Number(form.get("supplierInvoiceId")) : null,
-        cashRequisitionId: form.get("cashRequisitionId") ? Number(form.get("cashRequisitionId")) : null,
+        supplierInvoiceId:
+          sourceType === "invoice" && form.get("supplierInvoiceId")
+            ? Number(form.get("supplierInvoiceId"))
+            : null,
+        cashRequisitionId:
+          sourceType === "cash_requisition" && form.get("cashRequisitionId")
+            ? Number(form.get("cashRequisitionId"))
+            : null,
+        payeeName: form.get("payeeName"),
+        purpose: form.get("purpose"),
         amount: Number(form.get("amount")),
         paymentDate: form.get("paymentDate"),
         paymentMethod: form.get("paymentMethod"),
@@ -10763,7 +11630,7 @@ function bindActions() {
       },
     );
     await Promise.all([loadKitchen(), loadDashboard()]);
-    showToast("Kitchen requisition submitted");
+    showToast("Kitchen requisition sent to Approvals");
   });
 
   bindForm("kitchen-approve-form", async (form) => {
@@ -10919,7 +11786,17 @@ function bindActions() {
   });
 }
 
+function registerLeforiServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* Ignore registration failures on unsupported hosts. */
+    });
+  });
+}
+
 async function bootstrap() {
+  registerLeforiServiceWorker();
   readLocationState();
   window.matchMedia("(max-width:960px)").addEventListener("change", () => {
     closeMobileNavigation();
@@ -10988,3 +11865,26 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+
+/* dashboard work-source filter */
+document.addEventListener("click", (event) => {
+  const chip = event.target.closest("#dashboard-metrics .stat-item[data-work-source]");
+  if (!chip) return;
+  const dash = state.moduleData.dashboard;
+  if (!dash) return;
+  const source = chip.dataset.workSource;
+  const matching = (dash.attentionItems || []).filter((item) => item.source === source);
+  if (!matching.length) {
+    // Let the existing data-nav-target handler navigate to the module.
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  const next = dash.workFilter === source ? null : source;
+  dash.workFilter = next;
+  document.querySelectorAll("#dashboard-metrics .stat-item").forEach((el) => {
+    el.classList.toggle("is-active-filter", Boolean(next) && el.dataset.workSource === next);
+  });
+  renderWorkQueue(dash.attentionItems || [], dash.deliveries || [], next);
+}, true);

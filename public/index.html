@@ -3,12 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#111318" />
+    <meta name="theme-color" content="#0e6b66" />
+    <meta name="application-name" content="Lefori" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lefori" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta
       name="description"
-      content="Cater ERP operations workspace for contracts, procurement, inventory, kitchen production, and consumption analysis."
+      content="Lefori operations workspace for contracts, procurement, inventory, kitchen production, and consumption analysis."
     />
-    <title>Cater ERP</title>
+    <title>Lefori</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -28,12 +36,8 @@
         aria-label="Close navigation"
       ></button>
       <aside class="sidebar" id="app-sidebar" aria-label="Primary navigation">
-        <div class="brand-block">
-          <div class="brand-mark">C</div>
-          <div>
-            <h1>Cater</h1>
-            <p class="brand-subtitle">Operations</p>
-          </div>
+        <div class="brand-block brand-block-logo-only">
+          <div class="brand-mark" id="sidebar-brand-mark" aria-hidden="true">L</div>
         </div>
 
         <nav class="nav" id="nav"></nav>
@@ -139,132 +143,169 @@
             </div>
           </div>
         </header>
+                                        <section id="login-section" class="login-shell" aria-label="Sign in">
+          <div class="login-stage" aria-hidden="true">
+            <div class="login-stage-image"></div>
+            <div class="login-stage-wash"></div>
+            <div class="login-stage-glow login-stage-glow-a"></div>
+            <div class="login-stage-glow login-stage-glow-b"></div>
+          </div>
 
-        <section id="login-section" class="login-shell">
-          <article class="login-hero" hidden></article>
-          <article class="login-auth-shell">
-            <div class="login-auth-center">
-              <article class="login-card">
-                <div class="login-brand-inline">
-                  <div class="login-brand-mark">C</div>
-                  <div>
-                    <div class="login-brand-title">Cater</div>
-                    <div class="login-brand-subtitle">
-                      Contract catering operations
-                    </div>
+          <div class="login-content">
+            <aside class="login-story login-rise">
+              <p class="login-eyebrow">Restaurant &amp; catering operations</p>
+              <h1 class="login-story-title">Run the kitchen<br />from demand to plate.</h1>
+              <p class="login-story-copy">
+                Lefori keeps contracts, supply chain, kitchen issues, and payments in one calm workspace.
+              </p>
+              <ul class="login-story-points">
+                <li>Procurement &amp; LPOs</li>
+                <li>Cash &amp; payment vouchers</li>
+                <li>Kitchen &amp; stores</li>
+              </ul>
+            </aside>
+
+            <article class="login-card login-rise login-rise-delay">
+              <h2 class="login-title">Sign in</h2>
+              <p class="login-card-sub">Use your workspace credentials to continue.</p>
+              <form id="login-form" class="login-form">
+                <label class="auth-label">
+                  <span>Username or email</span>
+                  <div class="input-shell">
+                    <input
+                      name="username"
+                      placeholder="Username"
+                      autocomplete="username"
+                      required
+                    />
                   </div>
-                </div>
-                <div class="login-card-header">
-                  <h3>Sign in</h3>
-                  <p>Use your workspace credentials to continue.</p>
-                </div>
+                </label>
 
-                <form id="login-form" class="login-form">
-                  <label class="auth-label">
-                    <span>Username or email</span>
-                    <div class="input-shell">
-                      <input
-                        name="username"
-                        placeholder="Your username"
-                        autocomplete="username"
-                        required
-                      />
-                    </div>
-                  </label>
+                <label class="auth-label">
+                  <span>Password</span>
+                  <div class="input-shell">
+                    <input
+                      name="password"
+                      type="password"
+                      placeholder="Password"
+                      autocomplete="current-password"
+                      required
+                    />
+                    <button
+                      class="password-toggle"
+                      type="button"
+                      aria-label="Show password"
+                    >
+                      Show
+                    </button>
+                  </div>
+                </label>
 
-                  <label class="auth-label">
-                    <div class="password-row">
-                      <span>Password</span>
-                      <a href="mailto:admin@cater.local" class="inline-link"
-                        >Forgot password?</a
-                      >
-                    </div>
-                    <div class="input-shell">
-                      <input
-                        name="password"
-                        type="password"
-                        placeholder="Password"
-                        autocomplete="current-password"
-                        required
-                      />
-                      <button
-                        class="password-toggle"
-                        type="button"
-                        aria-label="Show password"
-                      >
-                        Show
-                      </button>
-                    </div>
-                  </label>
-
-                  <button type="submit" class="sign-in-btn">Sign in</button>
-                </form>
-
-                <div class="hint">
-                  Seeded local access: <code>admin / admin123</code>
-                </div>
+                <button type="submit" class="sign-in-btn">Sign in</button>
                 <div class="form-status" id="login-status"></div>
-              </article>
-
-              <div class="login-support">
-                Need access?
-                <a href="mailto:admin@cater.local" class="support-link"
-                  >Contact your administrator.</a
-                >
-              </div>
-            </div>
-          </article>
+              </form>
+              <p class="login-support">Need access? Ask your administrator.</p>
+            </article>
+          </div>
         </section>
 
         <section id="workspace" class="hidden" tabindex="-1">
           <section class="module" data-module="dashboard">
             <div class="page-header dashboard-intro">
               <div>
+                <p class="eyebrow dashboard-kicker">Operations command center</p>
                 <h1 id="dashboard-greeting">Operations overview</h1>
                 <p class="page-meta">
                   <time id="dashboard-date-chip">Today</time>
+                  <span class="dashboard-meta-divider" aria-hidden="true">·</span>
+                  <span id="dashboard-scope">All central stores</span>
                 </p>
               </div>
               <div class="dashboard-toolbar">
+                <span class="dashboard-freshness" role="status" aria-live="polite">
+                  <span class="live-dot" aria-hidden="true"></span>
+                  <span id="dashboard-refresh-status">Live snapshot</span>
+                </span>
+                <button
+                  class="refresh-btn slim-btn"
+                  id="dashboard-refresh-btn"
+                  data-load="dashboard"
+                  type="button"
+                >
+                  Refresh
+                </button>
                 <button
                   class="ghost-btn slim-btn"
                   data-nav-target="reports"
                   type="button"
                 >
-                  View reports
+                View reports
                 </button>
               </div>
+            </div>
+            <div class="dashboard-quick-actions" aria-label="Quick actions">
+              <span class="dashboard-quick-actions-label">Quick actions</span>
+              <button
+                type="button"
+                class="ghost-btn slim-btn"
+                data-open-form="purchase-requisition-form"
+                data-reset-form="true"
+              >
+                New purchase requisition
+              </button>
+              <button
+                type="button"
+                class="ghost-btn slim-btn"
+                data-open-form="kitchen-requisition-form"
+                data-reset-form="true"
+              >
+                New kitchen request
+              </button>
+              <button
+                type="button"
+                class="ghost-btn slim-btn"
+                data-open-form="goods-received-form"
+                data-reset-form="true"
+              >
+                Receive goods
+              </button>
+              <button
+                type="button"
+                class="ghost-btn slim-btn"
+                data-open-form="production-batch-form"
+                data-reset-form="true"
+              >
+                Record production
+              </button>
             </div>
             <div
               class="metric-grid dashboard-metric-grid stat-strip"
               id="dashboard-metrics"
             ></div>
-            <div class="dashboard-grid ops-split">
-              <article class="panel dashboard-panel">
-                <div class="panel-header">
-                  <h3>Work requiring attention</h3>
+                        <article class="panel dashboard-panel dashboard-work-queue-panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Work queue</h3>
+                  <p class="panel-subtitle">Ranked actions for the next things to do.</p>
                 </div>
-                <div class="attention-board" id="dashboard-attention"></div>
-                <div id="dashboard-production-summary"></div>
-              </article>
-              <article class="panel dashboard-panel">
-                <div class="panel-header">
-                  <h3>Stock to review</h3>
-                  <button
-                    class="ghost-btn compact-ghost-btn"
-                    type="button"
-                    data-nav-target="inventory"
-                    data-nav-tab="alerts"
-                  >
-                    All alerts →
-                  </button>
-                </div>
-                <div id="dashboard-stock-exceptions"></div>
-              </article>
-            </div>
+                <button
+                  class="ghost-btn compact-ghost-btn"
+                  type="button"
+                  id="dashboard-view-all-work"
+                  data-nav-target="inventory"
+                  data-nav-tab="alerts"
+                >
+                  View all open work
+                </button>
+              </div>
+              <div class="attention-board work-queue-board" id="dashboard-attention" aria-live="polite"></div>
+            </article>
             <article class="panel dashboard-table-panel">
               <div class="panel-header">
-                <h3>Active delivery commitments</h3>
+                <div>
+                  <h3>Today’s service commitments</h3>
+                  <p class="panel-subtitle" id="dashboard-service-summary">Scheduled client deliveries for today.</p>
+                </div>
                 <button
                   class="ghost-btn compact-ghost-btn"
                   type="button"
@@ -275,7 +316,7 @@
               </div>
               <div id="dashboard-upcoming-deliveries"></div>
             </article>
-            <div class="dashboard-grid ops-split">
+            <div class="dashboard-grid ops-split dashboard-secondary-grid">
               <article class="panel dashboard-panel">
                 <div class="panel-header">
                   <h3>Recent activity</h3>
@@ -519,46 +560,52 @@
                         data-contract-panel="overview"
                       >
                         <div class="contract-section-grid">
-                          <label class="full-span"
-                            >Client Name<input name="clientName" required
-                          /></label>
-                          <label
-                            >Client Contact Person<input
-                              name="clientContactPerson"
-                          /></label>
-                          <label
-                            >Client Phone<input name="clientPhone"
-                          /></label>
-                          <label
-                            >Client Email<input name="clientEmail" type="email"
-                          /></label>
-                          <label class="full-span"
-                            >Client Address<textarea
-                              name="clientAddress"
-                            ></textarea>
-                          </label>
-                          <label class="full-span"
-                            >Delivery Location Name<input
-                              name="locationName"
-                              required
-                          /></label>
-                          <label
-                            >Location Contact Person<input
-                              name="locationContactPerson"
-                          /></label>
-                          <label
-                            >Location Phone<input name="locationPhone"
-                          /></label>
-                          <label class="full-span"
-                            >Location Address<textarea
-                              name="locationAddress"
-                            ></textarea>
-                          </label>
-                          <label class="full-span"
-                            >Delivery Notes<textarea
-                              name="locationDeliveryNotes"
-                            ></textarea>
-                          </label>
+                          <fieldset class="contract-fieldset">
+                            <legend>Client</legend>
+                            <label class="full-span"
+                              >Client Name<input name="clientName" required
+                            /></label>
+                            <label
+                              >Contact Person<input
+                                name="clientContactPerson"
+                            /></label>
+                            <label
+                              >Phone<input name="clientPhone"
+                            /></label>
+                            <label class="full-span"
+                              >Email<input name="clientEmail" type="email"
+                            /></label>
+                            <label class="full-span"
+                              >Address<textarea
+                                name="clientAddress"
+                              ></textarea>
+                            </label>
+                          </fieldset>
+                          <fieldset class="contract-fieldset">
+                            <legend>Delivery location</legend>
+                            <label class="full-span"
+                              >Location Name<input
+                                name="locationName"
+                                required
+                            /></label>
+                            <label
+                              >Contact Person<input
+                                name="locationContactPerson"
+                            /></label>
+                            <label
+                              >Phone<input name="locationPhone"
+                            /></label>
+                            <label class="full-span"
+                              >Address<textarea
+                                name="locationAddress"
+                              ></textarea>
+                            </label>
+                            <label class="full-span"
+                              >Delivery Notes<textarea
+                                name="locationDeliveryNotes"
+                              ></textarea>
+                            </label>
+                          </fieldset>
                         </div>
                       </section>
 
@@ -877,8 +924,6 @@
                   </button>
                   <button type="button" class="module-tab">Suppliers</button>
                   <button type="button" class="module-tab">Invoices</button>
-                  <button type="button" class="module-tab">Cash Requisitions</button>
-                  <button type="button" class="module-tab">Payment Vouchers</button>
                 </div>
                 <div class="search-filter-bar">
                   <label class="search-box">
@@ -1166,14 +1211,25 @@
                         id="payment-voucher-cash-requisition-select"
                       ></select
                     ></label>
-                    <input name="supplierId" id="payment-voucher-supplier-id" type="hidden" />
+                                        <input name="supplierId" id="payment-voucher-supplier-id" type="hidden" />
                     <label
                       >Payment To<input
+                        name="payeeName"
                         id="payment-voucher-payee"
                         type="text"
-                        placeholder="Select an invoice or cash requisition"
-                        readonly
+                        placeholder="Who receives the payment"
+                        required
                       /></label>
+                    <label id="payment-voucher-purpose-field" class="full-span">
+                      <span id="payment-voucher-purpose-label">Purpose</span>
+                      <input
+                        name="purpose"
+                        id="payment-voucher-purpose"
+                        type="text"
+                        placeholder="What this payment is for"
+                        maxlength="240"
+                      />
+                    </label>
                     <label
                       >Payment Date<input
                         name="paymentDate"
@@ -1200,9 +1256,9 @@
                         <option value="Cheque">Cheque</option>
                       </select
                     ></label>
-                    <label>Payment Reference<input name="referenceNumber" placeholder="Optional bank or cash reference" /></label>
-                    <label class="full-span">Note<textarea name="notes" rows="2"></textarea></label>
-                    <button type="submit">Prepare Payment Voucher</button>
+                    <label>Payment / receipt reference<input name="referenceNumber" placeholder="Optional — bank slip, receipt, or cash reference" /></label>
+                    <label class="full-span">Note<textarea name="notes" rows="2" placeholder="Optional extra context for the voucher"></textarea></label>
+<button type="submit">Prepare Payment Voucher</button>
                   </form>
                   <form id="cash-requisition-form" class="grid-form hidden">
                     <input name="id" type="hidden" />
@@ -1255,7 +1311,7 @@
                       </select
                     ></label>
                     <label
-                      >Release Reference<input name="referenceNumber" placeholder="Receipt, voucher, or payment reference" required
+                      >Release Reference<input name="referenceNumber" placeholder="Receipt, voucher, or payment reference"
                     /></label>
                     <label class="full-span"
                       >Release Notes<textarea name="notes" rows="2" placeholder="Where or to whom was the cash released?"></textarea
@@ -1285,7 +1341,7 @@
                         required
                     /></label>
                     <label
-                      >Receipt Reference<input name="receiptReference" placeholder="Receipt or supporting reference"
+                      >Receipt Reference<input name="receiptReference" placeholder="Optional — receipt or supporting reference"
                     /></label>
                     <label class="full-span"
                       >Variance Reason<textarea name="varianceReason" rows="2" placeholder="Required if the full released amount was not spent or returned"></textarea
@@ -2261,6 +2317,55 @@
           </section>
           <section class="module hidden" data-module="settings">
             <div class="module-screen">
+              <article class="panel branding-panel" id="business-branding-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Documents</p>
+                    <h3>Business branding</h3>
+                  </div>
+                </div>
+                <p class="field-help branding-help">
+                  Logo appears at the top of the sidebar and on PDF and Excel exports. PNG or JPEG works best for Excel.
+                </p>
+                <form id="business-branding-form" class="grid-form">
+                  <label>Business name<input name="businessName" required maxlength="120" /></label>
+                  <label>Phone<input name="businessPhone" maxlength="40" /></label>
+                  <label>Location<input name="businessLocation" maxlength="160" /></label>
+                  <label>Owner email<input name="ownerEmail" type="email" maxlength="120" /></label>
+                  <label>Business type
+                    <select name="businessType">
+                      <option value="catering">Catering</option>
+                      <option value="restaurant">Restaurant</option>
+                    </select>
+                  </label>
+                  <div class="full-span branding-logo-field">
+                    <span class="branding-logo-label">Logo</span>
+                    <div class="branding-logo-row">
+                      <div class="branding-logo-preview" id="branding-logo-preview" aria-live="polite">
+                        <span class="branding-logo-empty">No logo</span>
+                      </div>
+                      <div class="branding-logo-actions">
+                        <input
+                          type="file"
+                          id="branding-logo-input"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          hidden
+                        />
+                        <button type="button" class="ghost-btn slim-btn" id="branding-logo-pick">
+                          Upload logo
+                        </button>
+                        <button type="button" class="ghost-btn slim-btn" id="branding-logo-clear">
+                          Remove
+                        </button>
+                        <p class="field-help">PNG, JPEG, WebP, or SVG. Keep under 2 MB.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="submit">Save branding</button>
+                  <div class="form-status full-span" id="branding-status"></div>
+                </form>
+              </article>
+
               <div
                 class="metric-grid module-metric-grid"
                 id="settings-metrics"

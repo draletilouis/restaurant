@@ -523,8 +523,7 @@ function createProcurementSystemRoutes(db) {
     try {
       const paymentMethod = String(req.body.paymentMethod || "Cash").trim();
       if (!PAYMENT_METHODS.has(paymentMethod)) throw httpError(400, "A valid cash release payment method is required.");
-      const referenceNumber = String(req.body.referenceNumber || "").trim();
-      if (!referenceNumber) throw httpError(400, "A cash release reference is required.");
+      const referenceNumber = String(req.body.referenceNumber || "").trim() || null;
       const result = await db.transaction(async (tx) => {
         const record = await tx.get(`SELECT * FROM cash_requisitions WHERE id = ? FOR UPDATE`, [req.params.id]);
         if (!record) throw httpError(404, "Cash requisition not found.");
@@ -565,9 +564,6 @@ function createProcurementSystemRoutes(db) {
         const varianceReason = String(req.body.varianceReason || "").trim() || null;
         const notes = String(req.body.notes || "").trim() || null;
         const attachmentId = req.body.attachmentId ? Number(req.body.attachmentId) : null;
-        if (!receiptReference && !attachmentId && !notes && !varianceReason) {
-          throw httpError(400, "Add a receipt reference, attach a receipt, or explain the settlement.");
-        }
         if (Math.abs(varianceAmount) > 0.01 && !varianceReason) {
           throw httpError(400, "Explain any difference between the released amount and the settlement.");
         }
@@ -844,13 +840,12 @@ function createProcurementSystemRoutes(db) {
       const rows = await db.all(`SELECT pv.*, s.name AS supplier_name, si.invoice_number,
                 cr.requisition_number AS cash_requisition_number, cr.payee_name AS cash_payee_name,
                 cr.purpose AS cash_requisition_purpose, cr.currency_code,
-                COALESCE(s.name, cr.payee_name) AS payee_name,
-                po.lpo_number
+                COALESCE(pv.payee_name, s.name, cr.payee_name) AS payee_name,
+                COALESCE(pv.purpose, cr.purpose) AS purpose
          FROM payment_vouchers pv
          LEFT JOIN suppliers s ON s.id = pv.supplier_id
          LEFT JOIN supplier_invoices si ON si.id = pv.supplier_invoice_id
          LEFT JOIN cash_requisitions cr ON cr.id = pv.cash_requisition_id
-         LEFT JOIN purchase_orders po ON po.id = pv.purchase_order_id
          ORDER BY pv.payment_date DESC, pv.id DESC`);
       res.json({ success: true, data: rows });
     } catch (error) {
@@ -863,13 +858,12 @@ function createProcurementSystemRoutes(db) {
       const voucher = await db.get(`SELECT pv.*, s.name AS supplier_name, si.invoice_number,
                 cr.requisition_number AS cash_requisition_number, cr.payee_name AS cash_payee_name,
                 cr.purpose AS cash_requisition_purpose, cr.currency_code,
-                COALESCE(s.name, cr.payee_name) AS payee_name,
-                po.lpo_number
+                COALESCE(pv.payee_name, s.name, cr.payee_name) AS payee_name,
+                COALESCE(pv.purpose, cr.purpose) AS purpose
          FROM payment_vouchers pv
          LEFT JOIN suppliers s ON s.id = pv.supplier_id
          LEFT JOIN supplier_invoices si ON si.id = pv.supplier_invoice_id
          LEFT JOIN cash_requisitions cr ON cr.id = pv.cash_requisition_id
-         LEFT JOIN purchase_orders po ON po.id = pv.purchase_order_id
          WHERE pv.id = ?`, [req.params.id]);
       if (!voucher) return res.status(404).json({ success: false, message: "Payment voucher not found" });
       const approvals = await db.all(`SELECT * FROM approval_history WHERE entity_type = 'payment_voucher' AND entity_id = ? ORDER BY created_at DESC`, [req.params.id]);
@@ -897,14 +891,19 @@ function createProcurementSystemRoutes(db) {
           if (existing) return { record: existing, existing: true };
         }
         let invoice = null;
+        let cashRequisition = null;
         if (supplierInvoiceId) {
           invoice = await tx.get(`SELECT * FROM supplier_invoices WHERE id = ? FOR UPDATE`, [supplierInvoiceId]);
+          if (invoice) {
+            const supplier = await tx.get(`SELECT name FROM suppliers WHERE id = ?`, [invoice.supplier_id]);
+            invoice.supplier_name = supplier?.name || "";
+          }
           if (!invoice) throw httpError(400, "Supplier invoice not found.");
           if (supplierId && Number(invoice.supplier_id) !== supplierId) throw httpError(400, "Payment supplier must match invoice supplier.");
           supplierId = Number(invoice.supplier_id);
           if (amount > Number(invoice.total_amount) - Number(invoice.amount_paid) + 0.0001) throw httpError(400, "Payment cannot exceed the invoice balance.");
         } else {
-          const cashRequisition = await tx.get(`SELECT * FROM cash_requisitions WHERE id = ? FOR UPDATE`, [cashRequisitionId]);
+          cashRequisition = await tx.get(`SELECT * FROM cash_requisitions WHERE id = ? FOR UPDATE`, [cashRequisitionId]);
           if (!cashRequisition) throw httpError(400, "Cash requisition not found.");
           ensureState(cashRequisition, ["approved", "cash released"], "Cash requisition");
           if (amount > Number(cashRequisition.amount) + 0.0001) throw httpError(400, "Payment cannot exceed the cash requisition amount.");
@@ -923,9 +922,46 @@ function createProcurementSystemRoutes(db) {
           if (!supplierId || Number(lpo.supplier_id) !== supplierId) throw httpError(400, "Payment supplier must match the LPO supplier.");
           if (invoice && Number(invoice.purchase_order_id || lpo.id) !== Number(lpo.id)) throw httpError(400, "Payment LPO must match the invoice LPO.");
         }
+
+        const defaultPayee = cashRequisition
+          ? String(cashRequisition.payee_name || "").trim()
+          : String(invoice?.supplier_name || "").trim();
+        const defaultPurpose = cashRequisition
+          ? String(cashRequisition.purpose || "").trim()
+          : `Payment against supplier invoice ${invoice?.invoice_number || ""}`.trim();
+        const payeeName = String(req.body.payeeName || defaultPayee || "").trim();
+        const purpose = String(req.body.purpose || defaultPurpose || "").trim();
+        if (!payeeName) throw httpError(400, "Payment To is required.");
+        if (cashRequisitionId && !purpose) throw httpError(400, "Purpose is required for cash payment vouchers.");
+
         const draft = await status(tx, "payment_voucher", "draft", "Draft");
         const number = await nextNumber(tx, "payment_voucher", req.body.paymentDate || today());
-        const inserted = await tx.exec(`INSERT INTO payment_vouchers (voucher_number, supplier_id, supplier_invoice_id, cash_requisition_id, purchase_order_id, amount, payment_date, payment_method, reference_number, status_id, status, prepared_by, supporting_attachment_id, idempotency_key, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`, [number, supplierId, supplierInvoiceId, cashRequisitionId, req.body.lpoId || req.body.purchaseOrderId || null, amount, req.body.paymentDate || today(), method, req.body.referenceNumber || null, draft?.id || null, statusName(draft, "Draft"), req.session.user.id, req.body.attachmentId || null, key, req.body.notes || null]);
+        const inserted = await tx.exec(
+          `INSERT INTO payment_vouchers (
+             voucher_number, supplier_id, supplier_invoice_id, cash_requisition_id, purchase_order_id,
+             payee_name, purpose, amount, payment_date, payment_method, reference_number,
+             status_id, status, prepared_by, supporting_attachment_id, idempotency_key, notes
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+          [
+            number,
+            supplierId,
+            supplierInvoiceId,
+            cashRequisitionId,
+            req.body.lpoId || req.body.purchaseOrderId || null,
+            payeeName,
+            purpose || null,
+            amount,
+            req.body.paymentDate || today(),
+            method,
+            String(req.body.referenceNumber || "").trim() || null,
+            draft?.id || null,
+            statusName(draft, "Draft"),
+            req.session.user.id,
+            req.body.attachmentId || null,
+            key,
+            req.body.notes || null,
+          ],
+        );
         await logAudit(tx, req.session.user.id, "create", "payment_voucher", inserted.rows[0].id, req.body);
         return { record: inserted.rows[0], existing: false };
       });
@@ -943,6 +979,12 @@ function createProcurementSystemRoutes(db) {
         if (action === "submit") ensureState(voucher, ["draft"], "Payment voucher");
         if (action === "approve") {
           ensureState(voucher, ["submitted"], "Payment voucher");
+          if (
+            !(req.session.user.roles || []).includes("admin") &&
+            Number(voucher.prepared_by) === Number(req.session.user.id)
+          ) {
+            throw httpError(403, "Users cannot approve their own payment vouchers unless they are Admin.");
+          }
         }
         if (action === "reject") {
           ensureState(voucher, ["submitted"], "Payment voucher");
@@ -972,8 +1014,16 @@ function createProcurementSystemRoutes(db) {
   }
 
   router.post("/payment-vouchers/:id/submit", (req, res, next) => transitionVoucher(req, res, next, "submit"));
-  router.post("/payment-vouchers/:id/approve", (req, res, next) => transitionVoucher(req, res, next, "approve"));
-  router.post("/payment-vouchers/:id/reject", (req, res, next) => transitionVoucher(req, res, next, "reject"));
+  router.post(
+    "/payment-vouchers/:id/approve",
+    requirePermission("payment_vouchers.approve"),
+    (req, res, next) => transitionVoucher(req, res, next, "approve")
+  );
+  router.post(
+    "/payment-vouchers/:id/reject",
+    requirePermission("payment_vouchers.approve"),
+    (req, res, next) => transitionVoucher(req, res, next, "reject")
+  );
 
   router.post("/payment-vouchers/:id/pay", async (req, res, next) => {
     try {

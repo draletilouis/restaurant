@@ -5,6 +5,24 @@ const { getSettingsBundle, updateSettingsBundle } = require("../services/setting
 
 function createSettingsRoutes(db) {
   const router = express.Router();
+
+  router.get("/public-branding", async (req, res, next) => {
+    try {
+      const configuration = await getSettingsBundle(db);
+      const profile = configuration?.profile || {};
+      res.json({
+        success: true,
+        data: {
+          businessName: profile.businessName || "Lefori",
+          logoData: profile.logoData || null,
+          logoMimeType: profile.logoMimeType || null,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.use(requireAuth);
 
   router.get("/", async (req, res, next) => {

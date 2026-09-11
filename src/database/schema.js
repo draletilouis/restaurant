@@ -830,6 +830,8 @@ function getSchemaSql() {
     supplier_invoice_id INTEGER REFERENCES supplier_invoices(id) ON DELETE SET NULL,
     cash_requisition_id INTEGER,
     purchase_order_id INTEGER REFERENCES purchase_orders(id) ON DELETE SET NULL,
+    payee_name VARCHAR(160),
+    purpose TEXT,
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
     payment_date DATE NOT NULL,
     payment_method VARCHAR(60) NOT NULL,
@@ -916,7 +918,9 @@ function getSchemaSql() {
   ALTER TABLE payment_vouchers
     ALTER COLUMN supplier_id DROP NOT NULL,
     ADD COLUMN IF NOT EXISTS reference_number VARCHAR(120),
-    ADD COLUMN IF NOT EXISTS cash_requisition_id INTEGER;
+    ADD COLUMN IF NOT EXISTS cash_requisition_id INTEGER,
+    ADD COLUMN IF NOT EXISTS payee_name VARCHAR(160),
+    ADD COLUMN IF NOT EXISTS purpose TEXT;
 
   ALTER TABLE store_issues
     ALTER COLUMN kitchen_requisition_id DROP NOT NULL,
@@ -1451,6 +1455,8 @@ async function seedReferenceData(db) {
   const permissions = [
     ["procurement_requisitions.approve", "Approve procurement requisitions", "Approvals"],
     ["kitchen_requisitions.approve", "Approve kitchen requisitions", "Approvals"],
+    ["payment_vouchers.approve", "Approve payment vouchers", "Approvals"],
+    ["stock_adjustments.approve", "Approve stock adjustments", "Approvals"],
     ["cash_requisitions.release", "Release approved cash requisitions", "Cash Requisitions"],
     ["cash_requisitions.settle", "Settle released cash requisitions", "Cash Requisitions"],
   ];
@@ -1459,7 +1465,7 @@ async function seedReferenceData(db) {
   // local development databases from retaining stale role assignments.
   await db.exec("DELETE FROM role_permissions");
   await db.exec(
-    `DELETE FROM permissions WHERE code NOT IN (?, ?, ?, ?)`,
+    `DELETE FROM permissions WHERE code NOT IN (${permissions.map(() => "?").join(", ")})`,
     permissions.map(([code]) => code)
   );
 
@@ -1476,10 +1482,20 @@ async function seedReferenceData(db) {
   const rolePermissions = {
     admin: permissions.map(([code]) => code),
     procurement_officer: [],
-    store_manager: ["kitchen_requisitions.approve"],
-    kitchen_supervisor: [],
-    finance_officer: ["cash_requisitions.release", "cash_requisitions.settle"],
-    manager: ["procurement_requisitions.approve", "cash_requisitions.release", "cash_requisitions.settle"],
+    store_manager: ["kitchen_requisitions.approve", "stock_adjustments.approve"],
+    kitchen_supervisor: ["kitchen_requisitions.approve"],
+    finance_officer: [
+      "payment_vouchers.approve",
+      "cash_requisitions.release",
+      "cash_requisitions.settle",
+    ],
+    manager: [
+      "procurement_requisitions.approve",
+      "payment_vouchers.approve",
+      "stock_adjustments.approve",
+      "cash_requisitions.release",
+      "cash_requisitions.settle",
+    ],
   };
 
   for (const [roleCode, permissionCodes] of Object.entries(rolePermissions)) {
@@ -1726,6 +1742,7 @@ async function seedReferenceData(db) {
     ["supplier_receipt", "Registered", "registered", "#027A48", 10, true],
     ["supplier_receipt", "Cancelled", "cancelled", "#667085", 20, true],
     ["stock_adjustment", "Draft", "draft", "#98A2B3", 10, false],
+    ["stock_adjustment", "Submitted", "submitted", "#175CD3", 15, false],
     ["stock_adjustment", "Approved", "approved", "#027A48", 20, true],
     ["stock_adjustment", "Rejected", "rejected", "#B42318", 30, true],
     ["physical_stock_count", "Draft", "draft", "#98A2B3", 10, false],

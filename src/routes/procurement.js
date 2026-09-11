@@ -133,6 +133,32 @@ function createProcurementRoutes(db) {
     }
   });
 
+  router.post("/purchase-requisitions/:id/submit", async (req, res, next) => {
+    try {
+      const requisition = await db.get("SELECT * FROM purchase_requisitions WHERE id = ?", [req.params.id]);
+      if (!requisition) {
+        res.status(404).json({ success: false, message: "Purchase requisition not found" });
+        return;
+      }
+      if (String(requisition.status || "").toLowerCase() !== "draft") {
+        res.status(400).json({ success: false, message: "Only draft purchase requisitions can be submitted." });
+        return;
+      }
+      const submittedStatus = await getStatus(db, "purchase_requisition", "submitted", { fallbackName: "Submitted" });
+      const result = await db.exec(
+        `UPDATE purchase_requisitions
+         SET status_id = ?, status = ?, updated_at = NOW()
+         WHERE id = ?
+         RETURNING *`,
+        [submittedStatus?.id || null, submittedStatus?.status_name || "Submitted", req.params.id]
+      );
+      await logAudit(db, req.session.user.id, "submit", "purchase_requisition", Number(req.params.id), {});
+      res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post(
     "/purchase-requisitions/:id/approve",
     requirePermission("procurement_requisitions.approve"),
@@ -141,6 +167,10 @@ function createProcurementRoutes(db) {
         const requisition = await db.get("SELECT * FROM purchase_requisitions WHERE id = ?", [req.params.id]);
         if (!requisition) {
           res.status(404).json({ success: false, message: "Purchase requisition not found" });
+          return;
+        }
+        if (String(requisition.status || "").toLowerCase() !== "submitted") {
+          res.status(400).json({ success: false, message: "Submit the purchase requisition before approving it." });
           return;
         }
         const totalAmount = (req.body.items || []).reduce(
@@ -196,6 +226,10 @@ function createProcurementRoutes(db) {
         const requisition = await db.get("SELECT * FROM purchase_requisitions WHERE id = ?", [req.params.id]);
         if (!requisition) {
           res.status(404).json({ success: false, message: "Purchase requisition not found" });
+          return;
+        }
+        if (String(requisition.status || "").toLowerCase() !== "submitted") {
+          res.status(400).json({ success: false, message: "Only submitted purchase requisitions can be rejected." });
           return;
         }
         await ensureApprovalAllowed(req, db, {

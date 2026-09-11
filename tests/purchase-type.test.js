@@ -77,6 +77,7 @@ describe("Daily and Weekly purchase types", () => {
   test("requires PO type for standalone orders and matches linked requisitions", async () => {
     const requisition = await createRequisition("Daily");
     const detail = await agent.get(`/api/procurement/purchase-requisitions/${requisition.body.data.id}`);
+    expect((await agent.post(`/api/procurement/purchase-requisitions/${requisition.body.data.id}/submit`).send({})).status).toBe(200);
     const approved = await agent.post(`/api/procurement/purchase-requisitions/${requisition.body.data.id}/approve`).send({
       items: detail.body.data.items.map((item) => ({
         id: item.id,

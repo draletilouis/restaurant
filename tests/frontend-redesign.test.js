@@ -99,10 +99,14 @@ describe("frontend redesign contracts", () => {
   });
 
   test("keeps live dashboard priorities and consumption tabs functional", () => {
-    expect(app).toContain("const lowStockRows = lowStockResponse.data || [];");
+    expect(app).toContain("mergeWorkQueueActions");
+    expect(app).toContain("renderWorkQueue");
+    expect(app).toContain("topActions");
+    expect(app).toContain("attentionItems");
     expect(app).toContain('moduleKey === "consumption"');
     expect(app).toContain("loadConsumption().catch");
     expect(app).toContain("activities.length === 0");
-    expect(app).toContain("attentionItems");
+    expect(html).toContain("Work queue");
+    expect(html).not.toContain('id="dashboard-top-consumption"');
   });
 });

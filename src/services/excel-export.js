@@ -23,6 +23,56 @@ function configureColumns(sheet, columns) {
   });
 }
 
+function excelLogoExtension(mimeType) {
+  const mime = String(mimeType || "").trim().toLowerCase();
+  if (mime === "image/png") return "png";
+  if (mime === "image/jpeg" || mime === "image/jpg") return "jpeg";
+  if (mime === "image/gif") return "gif";
+  return null;
+}
+
+function paintBrandBar(sheet, lastCol = 5) {
+  for (let col = 1; col <= lastCol; col += 1) {
+    sheet.getCell(1, col).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF0E6B66" },
+    };
+  }
+}
+
+function applyBrandingHeader(workbook, sheet, business) {
+  const name = business?.business_name || "Cater ERP";
+  const extension = excelLogoExtension(business?.logo_mime_type);
+  const hasLogo = Boolean(extension && business?.logo_data);
+
+  paintBrandBar(sheet, 5);
+  sheet.getRow(1).height = hasLogo ? 48 : 28;
+
+  if (hasLogo) {
+    const imageId = workbook.addImage({
+      base64: String(business.logo_data).replace(/\s+/g, ""),
+      extension,
+    });
+    sheet.mergeCells("B1:E1");
+    const nameCell = sheet.getCell("B1");
+    nameCell.value = name;
+    nameCell.font = { size: 18, bold: true, color: { argb: "FFFFFFFF" } };
+    nameCell.alignment = { vertical: "middle", horizontal: "left" };
+    sheet.addImage(imageId, {
+      tl: { col: 0, row: 0 },
+      ext: { width: 44, height: 44 },
+    });
+    return;
+  }
+
+  sheet.mergeCells("A1:E1");
+  const cell = sheet.getCell("A1");
+  cell.value = name;
+  cell.font = { size: 18, bold: true, color: { argb: "FFFFFFFF" } };
+  cell.alignment = { vertical: "middle", horizontal: "left" };
+}
+
 async function renderWorkbook({
   business,
   title,
@@ -45,15 +95,7 @@ async function renderWorkbook({
     views: [{ state: "frozen", ySplit: 7 }],
   });
 
-  sheet.mergeCells("A1:E1");
-  sheet.getCell("A1").value = business?.business_name || "Cater ERP";
-  sheet.getCell("A1").font = { size: 18, bold: true, color: { argb: "FFFFFFFF" } };
-  sheet.getCell("A1").fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FF0E6B66" },
-  };
-  sheet.getRow(1).height = 28;
+  applyBrandingHeader(workbook, sheet, business);
 
   sheet.mergeCells("A2:E2");
   sheet.getCell("A2").value = title;
@@ -138,17 +180,25 @@ async function renderTableWorkbook({
   sheetName = "Export",
   columns = [],
   rows = [],
+  business = null,
 }) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Cater ERP";
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(sanitizeSheetName(sheetName));
-  sheet.mergeCells("A1:E1");
-  sheet.getCell("A1").value = title;
-  sheet.getCell("A1").font = { size: 16, bold: true };
+  if (business) {
+    applyBrandingHeader(workbook, sheet, business);
+    sheet.mergeCells("A2:E2");
+    sheet.getCell("A2").value = title;
+    sheet.getCell("A2").font = { size: 14, bold: true };
+  } else {
+    sheet.mergeCells("A1:E1");
+    sheet.getCell("A1").value = title;
+    sheet.getCell("A1").font = { size: 16, bold: true };
+  }
 
-  const headerRowIndex = 3;
+  const headerRowIndex = business ? 4 : 3;
   configureColumns(sheet, columns);
   const headerRow = sheet.getRow(headerRowIndex);
   columns.forEach((column, index) => {

@@ -125,6 +125,15 @@ app.use(
   express.static(path.join(__dirname, "public"), {
     maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
     etag: true,
+    setHeaders(res, filePath) {
+      if (filePath.endsWith("manifest.webmanifest")) {
+        res.setHeader("Content-Type", "application/manifest+json; charset=utf-8");
+      }
+      if (filePath.endsWith("sw.js")) {
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Service-Worker-Allowed", "/");
+      }
+    },
   })
 );
 

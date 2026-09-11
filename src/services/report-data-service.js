@@ -94,10 +94,26 @@ const REPORT_CATALOG = [
   },
   {
     type: "purchases",
-    title: "Purchase Orders",
+    title: "Purchase Report (LPO / PO)",
     category: "procurement",
-    description: "Purchase order values, suppliers, and receipt status.",
-    tabs: ["procurement", "management"],
+    description: "Purchase orders and LPOs with suppliers, values, and status.",
+    tabs: ["procurement", "finance", "management"],
+    periodRequired: true,
+  },
+  {
+    type: "cash-requisitions",
+    title: "Cash Requisition Report",
+    category: "finance",
+    description: "Cash requests, payees, amounts, release, and settlement in the period.",
+    tabs: ["finance", "procurement", "management"],
+    periodRequired: true,
+  },
+  {
+    type: "all-purchases",
+    title: "All Purchases",
+    category: "finance",
+    description: "Combined purchases from LPOs/POs and cash requisitions in one register.",
+    tabs: ["finance", "procurement", "management"],
     periodRequired: true,
   },
   {
@@ -481,27 +497,35 @@ async function fetchProcurementReport(db, range) {
 
 async function fetchPurchasesReport(db, range) {
   const rows = await db.all(
-    `SELECT po.order_number, s.name AS supplier_name, po.order_date, po.expected_delivery_date,
-            po.purchase_type, po.status, COALESCE(SUM(poi.line_total), 0) AS total_amount,
+    `SELECT po.order_number,
+            po.lpo_number,
+            s.name AS supplier_name,
+            po.order_date,
+            po.expected_delivery_date,
+            po.purchase_type,
+            po.status,
+            COALESCE(SUM(poi.line_total), 0) AS total_amount,
             COALESCE(COUNT(poi.id), 0)::int AS item_count
      FROM purchase_orders po
      INNER JOIN suppliers s ON s.id = po.supplier_id
      LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
      WHERE po.order_date BETWEEN ? AND ?
      GROUP BY po.id, s.name
-     ORDER BY po.order_date DESC`,
+     ORDER BY po.order_date DESC, po.id DESC`,
     [range.startDate, range.endDate]
   );
   return {
     type: "purchases",
-    title: "Purchase Orders",
+    title: "Purchase Report (LPO / PO)",
     period: range,
     summary: [
-      summaryItem("Purchase orders", rows.length),
+      summaryItem("Purchase documents", rows.length),
       summaryItem("Order value", rows.reduce((sum, row) => sum + number(row.total_amount), 0), "currency"),
+      summaryItem("With LPO", rows.filter((row) => row.lpo_number).length),
     ],
     columns: [
       { key: "order_number", header: "PO" },
+      { key: "lpo_number", header: "LPO" },
       { key: "supplier_name", header: "Supplier" },
       { key: "order_date", header: "Order Date", format: "date" },
       { key: "expected_delivery_date", header: "Expected", format: "date" },
@@ -509,6 +533,128 @@ async function fetchPurchasesReport(db, range) {
       { key: "item_count", header: "Items", format: "number" },
       { key: "status", header: "Status" },
       { key: "total_amount", header: "Total", format: "currency" },
+    ],
+    rows,
+  };
+}
+
+async function fetchCashRequisitionsReport(db, range) {
+  const rows = await db.all(
+    `SELECT cr.requisition_number,
+            cr.request_date,
+            cr.required_date,
+            d.name AS department_name,
+            cr.payee_name,
+            cr.purpose,
+            cr.amount,
+            cr.currency_code,
+            cr.status,
+            cr.release_payment_method,
+            cr.cash_released_at,
+            crs.settlement_date,
+            crs.actual_spent_amount,
+            crs.cash_returned_amount,
+            crs.variance_amount
+     FROM cash_requisitions cr
+     LEFT JOIN departments d ON d.id = cr.department_id
+     LEFT JOIN cash_requisition_settlements crs ON crs.cash_requisition_id = cr.id
+     WHERE cr.request_date BETWEEN ? AND ?
+     ORDER BY cr.request_date DESC, cr.id DESC`,
+    [range.startDate, range.endDate]
+  );
+  return {
+    type: "cash-requisitions",
+    title: "Cash Requisition Report",
+    period: range,
+    summary: [
+      summaryItem("Cash requisitions", rows.length),
+      summaryItem("Requested", rows.reduce((sum, row) => sum + number(row.amount), 0), "currency"),
+      summaryItem(
+        "Settled spend",
+        rows.reduce((sum, row) => sum + number(row.actual_spent_amount), 0),
+        "currency"
+      ),
+    ],
+    columns: [
+      { key: "requisition_number", header: "CRQ" },
+      { key: "request_date", header: "Request Date", format: "date" },
+      { key: "department_name", header: "Department" },
+      { key: "payee_name", header: "Payee" },
+      { key: "purpose", header: "Purpose" },
+      { key: "amount", header: "Requested", format: "currency" },
+      { key: "status", header: "Status" },
+      { key: "release_payment_method", header: "Release Method" },
+      { key: "settlement_date", header: "Settled", format: "date" },
+      { key: "actual_spent_amount", header: "Spent", format: "currency" },
+      { key: "cash_returned_amount", header: "Returned", format: "currency" },
+      { key: "variance_amount", header: "Variance", format: "currency" },
+    ],
+    rows,
+  };
+}
+
+async function fetchAllPurchasesReport(db, range) {
+  const rows = await db.all(
+    `SELECT *
+     FROM (
+       SELECT
+         'LPO / PO'::text AS source,
+         COALESCE(po.lpo_number, po.order_number) AS reference,
+         po.order_number AS secondary_reference,
+         po.order_date AS purchase_date,
+         s.name AS party_name,
+         COALESCE(po.purchase_type, 'Purchase order') AS purpose,
+         COALESCE(SUM(poi.line_total), 0) AS amount,
+         po.status,
+         'UGX'::text AS currency_code
+       FROM purchase_orders po
+       INNER JOIN suppliers s ON s.id = po.supplier_id
+       LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
+       WHERE po.order_date BETWEEN ? AND ?
+       GROUP BY po.id, s.name
+
+       UNION ALL
+
+       SELECT
+         'Cash Requisition'::text AS source,
+         cr.requisition_number AS reference,
+         NULL::text AS secondary_reference,
+         cr.request_date AS purchase_date,
+         COALESCE(cr.payee_name, 'Cash payee') AS party_name,
+         cr.purpose,
+         COALESCE(crs.actual_spent_amount, cr.amount) AS amount,
+         cr.status,
+         cr.currency_code
+       FROM cash_requisitions cr
+       LEFT JOIN cash_requisition_settlements crs ON crs.cash_requisition_id = cr.id
+       WHERE cr.request_date BETWEEN ? AND ?
+         AND LOWER(cr.status) NOT IN ('draft', 'rejected', 'cancelled')
+     ) purchases
+     ORDER BY purchase_date DESC, source, reference`,
+    [range.startDate, range.endDate, range.startDate, range.endDate]
+  );
+
+  const lpoRows = rows.filter((row) => row.source === "LPO / PO");
+  const cashRows = rows.filter((row) => row.source === "Cash Requisition");
+  return {
+    type: "all-purchases",
+    title: "All Purchases",
+    period: range,
+    summary: [
+      summaryItem("All purchases", rows.length),
+      summaryItem("From LPO / PO", lpoRows.length),
+      summaryItem("From cash requisitions", cashRows.length),
+      summaryItem("Total value", rows.reduce((sum, row) => sum + number(row.amount), 0), "currency"),
+    ],
+    columns: [
+      { key: "source", header: "Source" },
+      { key: "reference", header: "Reference" },
+      { key: "secondary_reference", header: "PO" },
+      { key: "purchase_date", header: "Date", format: "date" },
+      { key: "party_name", header: "Supplier / Payee" },
+      { key: "purpose", header: "Purpose / Type" },
+      { key: "status", header: "Status" },
+      { key: "amount", header: "Amount", format: "currency" },
     ],
     rows,
   };
@@ -785,6 +931,8 @@ async function fetchReport(db, type, query = {}) {
     adjustments: fetchAdjustmentsReport,
     procurement: fetchProcurementReport,
     purchases: fetchPurchasesReport,
+    "cash-requisitions": fetchCashRequisitionsReport,
+    "all-purchases": fetchAllPurchasesReport,
     receipts: fetchReceiptsReport,
     finance: fetchFinanceReport,
     contracts: fetchContractsReport,

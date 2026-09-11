@@ -118,6 +118,8 @@ describe("Cater Phase 1 ERP", () => {
     const requisitionDetailResponse = await agent.get(`/api/procurement/purchase-requisitions/${purchaseRequisitionId}`);
     expect(requisitionDetailResponse.status).toBe(200);
 
+    expect((await agent.post(`/api/procurement/purchase-requisitions/${purchaseRequisitionId}/submit`).send({})).status).toBe(200);
+
     const approveRequisitionResponse = await agent
       .post(`/api/procurement/purchase-requisitions/${purchaseRequisitionId}/approve`)
       .send({

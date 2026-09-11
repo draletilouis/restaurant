@@ -1,4 +1,4 @@
-# Cater ERP Phase 1
+# Lefori Phase 1
 
 This workspace is now bootstrapped for Phase 1 using the same stack baseline as `StockMaster`:
 
@@ -31,10 +31,14 @@ The legacy customer billing, receivables, recipe/BOM, transfer, and unregistered
 5. Run `npm run dev`
 6. Open `http://localhost:3000`
 
-Default seeded login after database initialization:
+The database initializer always creates the administrator role and login. Demo records are opt-in only; keep them disabled for a client or production database:
 
 - Username: `admin`
 - Password: `admin123`
+
+For a throwaway local demo database, set `SEED_DEMO_DATA=true`. Do not enable that flag in production.
+
+To clear an existing client database while retaining the `admin` login, set `CONFIRM_CLEAR_LIVE_DATA=YES` and run `npm run clear-live-data` after verifying the database connection values. This removes operational and demo records but preserves system reference configuration.
 
 Local development uses the in-memory session store by default through `USE_PG_SESSION=false`.
 Production can switch back to PostgreSQL-backed sessions.
@@ -52,3 +56,4 @@ They are not advertised as live API endpoints until each document route has a co
 - [src/database/init-postgres.js](src/database/init-postgres.js)
 - [src/routes/index.js](src/routes/index.js)
 - [PHASE_1_EXECUTION_GUIDE.md](PHASE_1_EXECUTION_GUIDE.md)
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md)

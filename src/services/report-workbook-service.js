@@ -24,6 +24,29 @@ function sanitizeSheetName(name) {
   return String(name || "Report").replace(/[\\/*?:[\]]/g, " ").slice(0, 31);
 }
 
+function excelLogoExtension(mimeType) {
+  const mime = String(mimeType || "").trim().toLowerCase();
+  if (mime === "image/png") return "png";
+  if (mime === "image/jpeg" || mime === "image/jpg") return "jpeg";
+  if (mime === "image/gif") return "gif";
+  return null;
+}
+
+function embedWorkbookLogo(workbook, sheet, business) {
+  const extension = excelLogoExtension(business?.logo_mime_type);
+  if (!extension || !business?.logo_data) return;
+  const imageId = workbook.addImage({
+    base64: String(business.logo_data).replace(/\s+/g, ""),
+    extension,
+  });
+  sheet.getRow(1).height = Math.max(sheet.getRow(1).height || 30, 48);
+  sheet.addImage(imageId, {
+    tl: { col: 0, row: 0 },
+    ext: { width: 40, height: 40 },
+  });
+}
+
+
 function styleTitle(sheet, title, subtitle, columnCount) {
   const lastColumn = Math.max(columnCount, 4);
   sheet.mergeCells(1, 1, 1, lastColumn);
@@ -81,6 +104,7 @@ async function buildReportWorkbook(report, branding = {}) {
     views: [{ state: "frozen", ySplit: 4 }],
   });
   styleTitle(sheet, report.title, `${businessName} | ${periodLabel}`, columns.length);
+  embedWorkbookLogo(workbook, sheet, branding.business);
 
   (report.summary || []).forEach((item, index) => {
     const row = sheet.getRow(3);
@@ -93,6 +117,7 @@ async function buildReportWorkbook(report, branding = {}) {
   if (report.summary?.length) {
     const summarySheet = workbook.addWorksheet("Summary");
     styleTitle(summarySheet, `${report.title} Summary`, `${businessName} | ${periodLabel}`, 3);
+    embedWorkbookLogo(workbook, summarySheet, branding.business);
     const header = summarySheet.getRow(4);
     header.getCell(1).value = "Metric";
     header.getCell(2).value = "Value";

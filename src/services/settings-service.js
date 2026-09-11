@@ -170,8 +170,23 @@ async function getSettingsBundle(db) {
 async function updateSettingsBundle(db, payload = {}) {
   await ensureSettingsSchema(db);
 
-  const profile = normalizeBusinessProfile(payload.profile || {});
-  const settings = normalizeSettings(payload.settings || {});
+  const current = await getSettingsBundle(db);
+  const incomingProfile = payload.profile || {};
+  const profileSource = { ...incomingProfile };
+
+  if (incomingProfile.clearLogo === true) {
+    profileSource.logoData = null;
+    profileSource.logoMimeType = null;
+  } else if (!Object.prototype.hasOwnProperty.call(incomingProfile, "logoData")) {
+    profileSource.logoData = current.profile.logoData;
+    profileSource.logoMimeType = current.profile.logoMimeType;
+  }
+
+  const profile = normalizeBusinessProfile(profileSource);
+  const settings = normalizeSettings({
+    ...current.settings,
+    ...(payload.settings || {}),
+  });
 
   await db.transaction(async (tx) => {
     const profileExists = await tx.get(`SELECT id FROM business_profile ORDER BY id ASC LIMIT 1`);

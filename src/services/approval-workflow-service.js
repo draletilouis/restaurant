@@ -5,6 +5,8 @@ const APPROVAL_PERMISSION_BY_DOCUMENT = {
   goods_requisition: "procurement_requisitions.approve",
   cash_requisition: "procurement_requisitions.approve",
   kitchen_requisition: "kitchen_requisitions.approve",
+  payment_voucher: "payment_vouchers.approve",
+  stock_adjustment: "stock_adjustments.approve",
 };
 
 async function getWorkflowForAmount(db, documentType, amount = 0) {

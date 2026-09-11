@@ -27,7 +27,7 @@ describe("Multiple user roles", () => {
     expect(response.status).toBe(201);
     userId = response.body.data.id;
     expect(response.body.data.roles.sort()).toEqual(["kitchen_supervisor", "store_manager"]);
-    expect(response.body.data.permissions).toEqual(["kitchen_requisitions.approve"]);
+    expect(response.body.data.permissions).toEqual(["kitchen_requisitions.approve", "stock_adjustments.approve"]);
     expect(new Set(response.body.data.permissions).size).toBe(response.body.data.permissions.length);
     member = request.agent(app);
     expect((await member.post("/api/auth/login").send({ username: "multiple_roles_test", password })).status).toBe(200);
@@ -58,7 +58,9 @@ describe("Multiple user roles", () => {
     const current = (await member.get("/api/auth/me")).body.user;
     expect(current.roles.sort()).toEqual(["finance_officer", "manager"]);
     expect(current.permissions).toEqual([
+      "payment_vouchers.approve",
       "procurement_requisitions.approve",
+      "stock_adjustments.approve",
       "cash_requisitions.release",
       "cash_requisitions.settle",
     ]);

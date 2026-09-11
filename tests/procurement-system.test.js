@@ -142,17 +142,14 @@ describe("procurement operations workflow", () => {
     expect(finance.status).toBe(201);
     const financeAgent = request.agent(app);
     expect((await financeAgent.post("/api/auth/login").send({ username: "cash_finance", password: "cash-password" })).status).toBe(200);
-    expect((await financeAgent.post(`/api/procurement-system/cash-requisitions/${cashId}/release`).send({ paymentMethod: "Cash" })).status).toBe(400);
-
     const released = await financeAgent.post(`/api/procurement-system/cash-requisitions/${cashId}/release`).send({
       paymentMethod: "Cash",
-      referenceNumber: "CASH-RELEASE-001",
       notes: "Released to the office cashier.",
     });
     expect(released.status).toBe(200);
     expect(released.body.data.status).toBe("Cash Released");
     expect(released.body.data.release_payment_method).toBe("Cash");
-    expect(released.body.data.release_reference_number).toBe("CASH-RELEASE-001");
+    expect(released.body.data.release_reference_number == null || released.body.data.release_reference_number === "").toBe(true);
 
     const overspent = await financeAgent.post(`/api/procurement-system/cash-requisitions/${cashId}/settle`).send({
       settlementDate: "2026-09-09",
