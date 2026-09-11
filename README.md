@@ -38,17 +38,18 @@ The database initializer always creates the administrator role and login. Demo r
 
 For a throwaway local demo database, set `SEED_DEMO_DATA=true`. Do not enable that flag in production.
 
-To clear the Railway client database while retaining the administrator login, run the guarded script from the production service environment. It requires the four safeguards below and will refuse to run against another environment:
+To clear the Railway client database once while retaining the administrator login, set these variables on the Railway `restaurant` service in the `production` environment and redeploy:
 
-```powershell
-$env:NODE_ENV="production"
-$env:CLEAR_LIVE_DATA_TARGET="alert-friendship-production"
-$env:KEEP_LOGIN_EMAIL="admin@cater.local"
-$env:CONFIRM_CLEAR_LIVE_DATA="YES"
-npm run clear-live-data
+```text
+RUN_LIVE_DATA_CLEANUP_ONCE=true
+CLEAR_LIVE_DATA_TARGET=alert-friendship-production
+KEEP_LOGIN_EMAIL=admin@cater.local
+CONFIRM_CLEAR_LIVE_DATA=YES
 ```
 
-The script uses Railway's `DATABASE_URL`, removes operational and demo records, deletes other user accounts, resets document numbering, and preserves system reference configuration plus the specified login. It prints before/after counts and verifies that only the retained administrator remains. Do not run it until the command is attached to the intended Railway production service.
+The production startup runs [scripts/clear-live-data.js](scripts/clear-live-data.js) before opening the HTTP port. It uses Railway's `DATABASE_URL`, removes operational and demo records, deletes other user accounts, resets document numbering, preserves system reference configuration plus the specified login, and records a durable completion marker in `maintenance_runs`. The runtime copy of the script removes itself after the first successful run. Every later restart or redeploy sees the marker and skips the cleanup.
+
+After the deployment reports healthy, remove `RUN_LIVE_DATA_CLEANUP_ONCE` and `CONFIRM_CLEAR_LIVE_DATA` from Railway. The database marker remains as a second safety barrier, and the repository copy of the migration is retained for auditability.
 
 Local development uses the in-memory session store by default through `USE_PG_SESSION=false`.
 Production can switch back to PostgreSQL-backed sessions.

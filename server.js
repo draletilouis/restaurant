@@ -8,6 +8,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const compression = require("compression");
 const bodyParser = require("body-parser");
+const fs = require("fs");
 const path = require("path");
 
 const Database = require("./src/database/database");
@@ -45,13 +46,33 @@ function isSameOriginRequest(req) {
 const dbReady = (async () => {
   await ensureDatabaseExists(db.config);
   await initializeDatabase(db);
+  const cleanupAtStartup = process.env.RUN_LIVE_DATA_CLEANUP_ONCE === "true";
   // Demo data is opt-in for production. A client deployment must never be
   // populated with sample records just because a seed flag was omitted.
   const shouldSeedDemoData =
     process.env.SEED_DEMO_DATA === "true" ||
     (process.env.NODE_ENV !== "production" && process.env.SKIP_DEMO_SEED !== "true");
-  if (shouldSeedDemoData) {
+  // Never seed demo records in the same startup that performs the one-time
+  // production cleanup, even if a stale SEED_DEMO_DATA flag is present.
+  if (shouldSeedDemoData && !cleanupAtStartup) {
     await seedDemoData(db);
+  }
+
+  if (cleanupAtStartup) {
+    const cleanupScriptPath = path.join(__dirname, "scripts", "clear-live-data.js");
+    if (fs.existsSync(cleanupScriptPath)) {
+      const { run } = require(cleanupScriptPath);
+      await run({ db, removeScriptAfterSuccess: true });
+    } else {
+      const completedRun = await db.get(
+        "SELECT completed_at FROM maintenance_runs WHERE operation_key = ?",
+        ["alert-friendship-live-data-cleanup-v1"]
+      );
+      if (!completedRun) {
+        throw new Error("One-time live-data cleanup is enabled, but its script is missing.");
+      }
+      console.log(`One-time live-data cleanup already completed at ${completedRun.completed_at}.`);
+    }
   }
 })();
 

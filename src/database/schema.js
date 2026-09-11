@@ -62,6 +62,7 @@ const TABLES_IN_DROP_ORDER = [
   "audit_logs",
   "business_profile",
   "app_settings",
+  "maintenance_runs",
 ];
 
 function getSchemaSql() {
@@ -83,6 +84,12 @@ function getSchemaSql() {
     id INTEGER PRIMARY KEY,
     settings JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS maintenance_runs (
+    operation_key VARCHAR(160) PRIMARY KEY,
+    completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb
   );
 
   CREATE TABLE IF NOT EXISTS configuration_groups (
