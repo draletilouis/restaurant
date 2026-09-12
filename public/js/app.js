@@ -5569,6 +5569,12 @@ function renderProcurement() {
             actions.push({
               entity: "purchase-order",
               id: row.id,
+              label: "Edit",
+              action: "edit",
+            });
+            actions.push({
+              entity: "purchase-order",
+              id: row.id,
               label: "Send",
               action: "send",
             });
@@ -5709,6 +5715,12 @@ function renderProcurement() {
             },
           ];
           if (status === "draft") {
+            actions.push({
+              entity: "purchase-order",
+              id: row.id,
+              label: "Edit",
+              action: "edit",
+            });
             actions.push({
               entity: "purchase-order",
               id: row.id,
@@ -9587,6 +9599,8 @@ async function handlePurchaseRequisitionAction(action, id) {
           quantityApproved: Number(
             item.quantity_approved || item.quantity_requested || 0,
           ),
+          estimatedUnitCost: Number(item.estimated_unit_cost || 0),
+          preferredSupplierId: item.preferred_supplier_id || null,
         })),
       }),
     });
@@ -9619,7 +9633,17 @@ async function handlePurchaseRequisitionAction(action, id) {
         };
       }),
     );
+    syncPurchaseOrderSubmitLabel(false);
     focusForm("purchase-order-form");
+  }
+}
+
+function syncPurchaseOrderSubmitLabel(isEdit) {
+  const btn = document.getElementById("purchase-order-submit");
+  if (btn) btn.textContent = isEdit ? "Update LPO" : "Create LPO";
+  const title = document.querySelector("#purchase-order-form")?.closest(".panel, .card, section, .stack")?.querySelector("h3");
+  if (title && /LPO/i.test(title.textContent || "")) {
+    title.textContent = isEdit ? "Edit LPO" : "Create LPO";
   }
 }
 
@@ -9637,6 +9661,39 @@ async function handlePurchaseOrderAction(action, id) {
   const response = await api(`/api/procurement/purchase-orders/${id}`);
   if (action === "view") {
     renderDetailPayload("LPO", response.data);
+    return;
+  }
+
+  if (action === "edit") {
+    const header = response.data.header;
+    if (String(header.status || "").toLowerCase() !== "draft") {
+      showToast("Only draft LPOs can be edited");
+      return;
+    }
+    populateForm("purchase-order-form", {
+      id: header.id,
+      purchaseRequisitionId: header.purchase_requisition_id || "",
+      purchaseType: header.purchase_type || "Weekly",
+      supplierId: header.supplier_id || "",
+      orderDate: String(header.order_date || "").slice(0, 10),
+      expectedDeliveryDate: String(header.expected_delivery_date || "").slice(0, 10),
+      paymentTermId: header.payment_term_id || "",
+    });
+    setCollectionData(
+      "purchase-order-form",
+      "itemsJson",
+      response.data.items.map((item) => {
+        const product = findReferenceProduct(item.product_id);
+        const unitCost = Number(item.unit_cost || 0) || Number(product?.standard_cost || 0);
+        return {
+          productId: item.product_id,
+          quantityOrdered: Number(item.quantity_ordered || 0),
+          unitCost,
+        };
+      }),
+    );
+    syncPurchaseOrderSubmitLabel(true);
+    focusForm("purchase-order-form");
     return;
   }
 
@@ -11366,25 +11423,36 @@ function bindActions() {
   });
 
   bindForm("purchase-order-form", async (form) => {
-    await api("/api/procurement/purchase-orders", {
-      method: "POST",
-      body: JSON.stringify({
-        purchaseRequisitionId: form.get("purchaseRequisitionId")
-          ? Number(form.get("purchaseRequisitionId"))
-          : null,
-        purchaseType: form.get("purchaseType"),
-        supplierId: Number(form.get("supplierId")),
-        orderDate: form.get("orderDate"),
-        expectedDeliveryDate: form.get("expectedDeliveryDate"),
-        paymentTermId: form.get("paymentTermId")
-          ? Number(form.get("paymentTermId"))
-          : null,
-        items: parseJsonArray(form.get("itemsJson"), "LPO items"),
-      }),
-    });
+    const id = form.get("id") ? Number(form.get("id")) : null;
+    const payload = {
+      purchaseRequisitionId: form.get("purchaseRequisitionId")
+        ? Number(form.get("purchaseRequisitionId"))
+        : null,
+      purchaseType: form.get("purchaseType"),
+      supplierId: Number(form.get("supplierId")),
+      orderDate: form.get("orderDate"),
+      expectedDeliveryDate: form.get("expectedDeliveryDate"),
+      paymentTermId: form.get("paymentTermId")
+        ? Number(form.get("paymentTermId"))
+        : null,
+      items: parseJsonArray(form.get("itemsJson"), "LPO items"),
+    };
+    if (id) {
+      await api(`/api/procurement/purchase-orders/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      showToast("LPO updated");
+    } else {
+      await api("/api/procurement/purchase-orders", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      showToast("LPO created");
+    }
     resetForm("purchase-order-form");
+    syncPurchaseOrderSubmitLabel(false);
     await Promise.all([loadProcurement(), loadDashboard()]);
-    showToast("LPO created");
   });
 
   bindForm("goods-received-form", async (form) => {
@@ -11872,14 +11940,14 @@ function bindActions() {
 
 function registerLeforiServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  const SW_URL = "/sw.js?v=mojibake-clean-v1";
+  const SW_URL = "/sw.js?v=lpo-cost-fix-v1";
   window.addEventListener("load", async () => {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(
         registrations.map(async (registration) => {
           const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || "";
-          if (!scriptURL.includes("mojibake-clean-v1")) {
+          if (!scriptURL.includes("lpo-cost-fix-v1")) {
             await registration.unregister();
           }
         }),

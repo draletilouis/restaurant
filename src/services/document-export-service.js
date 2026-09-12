@@ -109,7 +109,7 @@ async function loadPurchaseOrder(db, id) {
   );
   if (!header) return null;
   const items = await db.all(
-    `SELECT poi.*, p.name AS product_name, uom.code AS unit_code
+    `SELECT poi.*, p.name AS product_name, p.standard_cost, uom.code AS unit_code, uom.name AS unit_name
      FROM purchase_order_items poi
      INNER JOIN products p ON p.id = poi.product_id
      LEFT JOIN units_of_measure uom ON uom.id = p.unit_of_measure_id
@@ -117,7 +117,19 @@ async function loadPurchaseOrder(db, id) {
      ORDER BY p.name`,
     [id]
   );
-  const total = items.reduce((sum, item) => sum + Number(item.line_total || 0), 0);
+  const effectiveUnitCost = (item) => {
+    const line = Number(item.unit_cost);
+    if (Number.isFinite(line) && line > 0) return line;
+    return Number(item.standard_cost || 0);
+  };
+  const effectiveLineTotal = (item) => {
+    const qty = Number(item.quantity_ordered || 0);
+    const unit = effectiveUnitCost(item);
+    const line = Number(item.unit_cost);
+    if (Number.isFinite(line) && line > 0) return Number(item.line_total || qty * unit);
+    return qty * unit;
+  };
+  const total = items.reduce((sum, item) => sum + effectiveLineTotal(item), 0);
   return {
     number: header.order_number,
     date: header.order_date,
@@ -145,15 +157,15 @@ async function loadPurchaseOrder(db, id) {
       name: escapeHtml(item.product_name),
       qty: Number(item.quantity_ordered || 0).toLocaleString(),
       unit: escapeHtml(formatUnit(item)),
-      price: formatCurrency(item.unit_cost),
-      total: formatCurrency(item.line_total),
+      price: formatCurrency(effectiveUnitCost(item)),
+      total: formatCurrency(effectiveLineTotal(item)),
     })),
     excelRows: items.map((item) => ({
       name: item.product_name,
       qtyValue: Number(item.quantity_ordered || 0),
       unit: formatUnit(item),
-      priceValue: Number(item.unit_cost || 0),
-      totalValue: Number(item.line_total || 0),
+      priceValue: effectiveUnitCost(item),
+      totalValue: effectiveLineTotal(item),
     })),
     totals: [{ label: "TOTAL", value: formatCurrency(total) }],
     excelTotals: [{ label: "TOTAL", value: formatCurrency(total) }],

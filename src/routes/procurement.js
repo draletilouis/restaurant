@@ -282,6 +282,13 @@ function createProcurementRoutes(db) {
     }
   });
 
+  async function resolvePurchaseOrderUnitCost(tx, productId, unitCost) {
+    const requested = Number(unitCost);
+    if (Number.isFinite(requested) && requested > 0) return requested;
+    const product = await tx.get("SELECT standard_cost FROM products WHERE id = ?", [productId]);
+    return Number(product?.standard_cost || 0);
+  }
+
   router.post("/purchase-orders", async (req, res, next) => {
     try {
       const statusRow = await getStatus(db, "purchase_order", req.body.status || "Draft", { fallbackName: "Draft" });
@@ -327,9 +334,9 @@ function createProcurementRoutes(db) {
           ]
         );
 
-        let totalReceivedQuantity = 0;
         for (const item of req.body.items || []) {
-          totalReceivedQuantity += Number(item.quantityOrdered || 0);
+          const qty = Number(item.quantityOrdered || 0);
+          const unitCost = await resolvePurchaseOrderUnitCost(tx, item.productId, item.unitCost);
           await tx.exec(
             `INSERT INTO purchase_order_items
                (purchase_order_id, product_id, quantity_ordered, unit_cost, line_total)
@@ -337,9 +344,9 @@ function createProcurementRoutes(db) {
             [
               headerResult.rows[0].id,
               item.productId,
-              item.quantityOrdered || 0,
-              item.unitCost || 0,
-              Number(item.quantityOrdered || 0) * Number(item.unitCost || 0),
+              qty,
+              unitCost,
+              qty * unitCost,
             ]
           );
         }
@@ -398,6 +405,83 @@ function createProcurementRoutes(db) {
       ]);
 
       res.json({ success: true, data: { header, items, auditTrail } });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.put("/purchase-orders/:id", async (req, res, next) => {
+    try {
+      const existing = await db.get("SELECT * FROM purchase_orders WHERE id = ?", [req.params.id]);
+      if (!existing) {
+        res.status(404).json({ success: false, message: "LPO not found" });
+        return;
+      }
+      if (String(existing.status || "").toLowerCase() !== "draft") {
+        res.status(400).json({ success: false, message: "Only draft LPOs can be edited." });
+        return;
+      }
+
+      const order = await db.transaction(async (tx) => {
+        const purchaseRequisitionId =
+          req.body.purchaseRequisitionId !== undefined
+            ? req.body.purchaseRequisitionId || null
+            : existing.purchase_requisition_id;
+        const linkedRequisition = purchaseRequisitionId
+          ? await tx.get("SELECT id, purchase_type, status FROM purchase_requisitions WHERE id = ?", [
+              purchaseRequisitionId,
+            ])
+          : null;
+        if (purchaseRequisitionId && !linkedRequisition) {
+          const error = new Error("Purchase requisition not found.");
+          error.status = 404;
+          throw error;
+        }
+        const purchaseType = assertPurchaseType(req.body.purchaseType, {
+          required: !linkedRequisition,
+          defaultValue: linkedRequisition?.purchase_type || existing.purchase_type,
+        });
+        if (linkedRequisition && purchaseType !== linkedRequisition.purchase_type) {
+          const error = new Error("LPO type must match the linked purchase requisition.");
+          error.status = 400;
+          throw error;
+        }
+        const paymentTerm = await resolvePaymentTerm(tx, req.body.paymentTermId, req.body.paymentTerms);
+
+        await tx.exec(
+          `UPDATE purchase_orders
+           SET purchase_requisition_id = ?, supplier_id = ?, order_date = ?, purchase_type = ?,
+               expected_delivery_date = ?, payment_term_id = ?, notes = ?, updated_at = NOW()
+           WHERE id = ?`,
+          [
+            purchaseRequisitionId,
+            req.body.supplierId ?? existing.supplier_id,
+            req.body.orderDate || existing.order_date,
+            purchaseType,
+            req.body.expectedDeliveryDate || null,
+            paymentTerm?.id ?? existing.payment_term_id,
+            req.body.notes !== undefined ? req.body.notes || null : existing.notes,
+            req.params.id,
+          ]
+        );
+
+        await tx.exec("DELETE FROM purchase_order_items WHERE purchase_order_id = ?", [req.params.id]);
+        for (const item of req.body.items || []) {
+          const qty = Number(item.quantityOrdered || 0);
+          const unitCost = await resolvePurchaseOrderUnitCost(tx, item.productId, item.unitCost);
+          await tx.exec(
+            `INSERT INTO purchase_order_items
+               (purchase_order_id, product_id, quantity_ordered, unit_cost, line_total)
+             VALUES (?, ?, ?, ?, ?)`,
+            [req.params.id, item.productId, qty, unitCost, qty * unitCost]
+          );
+        }
+
+        return tx.get("SELECT * FROM purchase_orders WHERE id = ?", [req.params.id]);
+      });
+
+      await logAudit(db, req.session.user.id, "update", "purchase_order", Number(req.params.id), req.body);
+      res.json({ success: true, data: order });
     } catch (error) {
       next(error);
     }

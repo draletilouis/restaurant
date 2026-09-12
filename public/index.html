@@ -1050,6 +1050,7 @@
                     </div>
                   </div>
                   <form id="purchase-order-form" class="grid-form">
+                    <input name="id" type="hidden" />
                     <label
                       >Linked Requisition (optional)<select
                         name="purchaseRequisitionId"
@@ -1088,7 +1089,7 @@
 [{"productId":1,"quantityOrdered":100,"unitCost":5000}]</textarea
                       >
                     </label>
-                    <button type="submit">Create LPO</button>
+                    <button type="submit" id="purchase-order-submit">Create LPO</button>
                   </form>
                   <div id="goods-received-table" class="stack-space"></div>
                 </article>
@@ -2513,6 +2514,6 @@
       </main>
     </div>
 
-    <script src="/js/app.js?v=mojibake-clean-v1"></script>
+    <script src="/js/app.js?v=lpo-cost-fix-v1"></script>
   </body>
 </html>

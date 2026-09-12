@@ -203,6 +203,14 @@ Use a tight action cluster on every operational table:
 - Legacy `purchase_order` numbering series is unused for new creates (`purchaseOrderPrefix` maps to `lpo`).
 
 
+
+## LPO line costs (locked)
+- LPO `unit_cost` / `line_total` are a create-time commercial snapshot used by print/export.
+- On create (and Draft update), blank/zero unit cost falls back to product `standard_cost`.
+- Draft LPOs are editable; Sent/received LPOs are not rewritten when product costs change.
+- Print/export uses line cost when > 0, otherwise falls back to current product `standard_cost` so accidental zeros still show a sensible value.
+- PR approve must preserve `estimated_unit_cost` / preferred supplier (do not send qty-only payloads that zero estimates).
+
 ## Line grids by role (locked)
 
 - **Requester grids** (purchase requisition, goods requisition, kitchen requisition): Product · Unit · Qty only. No approved qty, cost, or supplier.

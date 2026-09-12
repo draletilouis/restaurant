@@ -1,4 +1,4 @@
-﻿const CACHE_VERSION = "lefori-pwa-v4-moji";
+﻿const CACHE_VERSION = "lefori-pwa-v5-lpo-cost";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
