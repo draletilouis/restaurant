@@ -5,7 +5,7 @@ function esc(value) {
 }
 
 function fmtDate(value) {
-  if (!value) return "â€”";
+  if (!value) return "—";
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleDateString("en-GB", {
@@ -29,7 +29,7 @@ function formatCell(value, format) {
   if (format === "date") return fmtDate(value);
   if (format === "currency") return fmtCurrency(value);
   if (format === "number" || format === "percent") return fmtQty(value);
-  if (value == null || value === "") return "â€”";
+  if (value == null || value === "") return "—";
   return String(value);
 }
 
@@ -208,7 +208,7 @@ function buildHeader(meta) {
     ...profileHeader.lines.map((line) => line.text),
   ].filter(Boolean);
   const periodStr =
-    from && to ? `${fmtDate(from)} â€“ ${fmtDate(to)}` : from || to || "Current snapshot";
+    from && to ? `${fmtDate(from)} – ${fmtDate(to)}` : from || to || "Current snapshot";
 
   return `
   <div class="rpt-letterhead">
@@ -288,7 +288,7 @@ function buildTable(columns, rows, meta = {}) {
   if (!rows.length) {
     const periodLabel =
       meta.from && meta.to
-        ? `${fmtDate(meta.from)} â€“ ${fmtDate(meta.to)}`
+        ? `${fmtDate(meta.from)} – ${fmtDate(meta.to)}`
         : "the selected range";
     return `
       <div class="rpt-empty">
@@ -317,7 +317,7 @@ function buildTable(columns, rows, meta = {}) {
         return index === 0 ? "<td>Total</td>" : "<td></td>";
       }
       if (!isNumericFormat(column.format) || column.format === "percent") {
-        return index === 0 ? `<td>Total â€” ${rows.length} records</td>` : "<td></td>";
+        return index === 0 ? `<td>Total — ${rows.length} records</td>` : "<td></td>";
       }
       const sum = rows.reduce((acc, row) => acc + Number(row[column.key] || 0), 0);
       return `<td class="num">${esc(formatCell(sum, column.format))}</td>`;

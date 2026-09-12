@@ -407,7 +407,7 @@ const formModalMeta = {
     eyebrow: "Finance",
     title: "Payment Voucher",
     description:
-      "Link a supplier invoice or cash requisition, then capture payee, purpose, amount, method, and reference â€” everything that prints on the voucher.",
+      "Link a supplier invoice or cash requisition, then capture payee, purpose, amount, method, and reference — everything that prints on the voucher.",
   },
   "cash-requisition-form": {
     eyebrow: "Cash Requisitions",
@@ -2382,7 +2382,7 @@ function renderTable(targetId, columns, rows, options = {}) {
     const moduleKey = target.closest(".module")?.dataset.module;
     const searching = Boolean(state.filters[moduleKey]?.search);
     target.innerHTML =
-      '<div class="state-card empty-state" role="status"><span class="state-icon" aria-hidden="true">â€”</span><strong>' +
+      '<div class="state-card empty-state" role="status"><span class="state-icon" aria-hidden="true">—</span><strong>' +
       (searching ? "No matching records" : "No records in this view") +
       "</strong><span>" +
       escapeHtml(
@@ -2480,7 +2480,7 @@ function renderTable(targetId, columns, rows, options = {}) {
     ? ""
     : '<div class="table-pagination"><span>' +
       ((currentPage - 1) * pageSize + 1) +
-      "â€“" +
+      "–" +
       Math.min(currentPage * pageSize, sortedRows.length) +
       " of " +
       sortedRows.length +
@@ -2505,7 +2505,7 @@ function renderTable(targetId, columns, rows, options = {}) {
   const scrollHint = options.hideTableFooter
     ? ""
     : `<p class="table-scroll-hint">Scroll horizontally to see all columns.</p>`;
-  target.innerHTML = `<div class="table-shell" role="region" tabindex="0" aria-label="${escapeHtml(titleCaseWords(tableLabel))} â€” scroll for more columns"><table aria-label="${escapeHtml(titleCaseWords(tableLabel))}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${scrollHint}${pagination}`;
+  target.innerHTML = `<div class="table-shell" role="region" tabindex="0" aria-label="${escapeHtml(titleCaseWords(tableLabel))} — scroll for more columns"><table aria-label="${escapeHtml(titleCaseWords(tableLabel))}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${scrollHint}${pagination}`;
 }
 
 function fillSelect(
@@ -2999,7 +2999,7 @@ function fillWorkflowSelects() {
     "id",
     (row) =>
       `${row.requisition_number} | ${titleCaseWords(row.status || "draft")}`,
-    "No requisition â€” raise this order directly",
+    "No requisition — raise this order directly",
   );
   fillSelect(
     "goods-received-order-select",
@@ -3274,7 +3274,7 @@ function showModule(key) {
   $("#page-kicker").textContent = module?.group || "Workspace";
   $("#page-title").textContent = module ? module.label : "Workspace";
   $("#page-copy").textContent = "";
-  document.title = `${module?.label || "Workspace"} Â· Lefori`;
+  document.title = `${module?.label || "Workspace"} · Lefori`;
   renderNav();
   syncModuleTabs();
   updateLocationState();
@@ -4200,7 +4200,7 @@ function renderWorkQueue(attentionItems, deliveries, filterSource) {
   }
   target.innerHTML = visible
     .map((item) => {
-      const countLabel = Number(item.count) > 1 ? formatNumber(item.count) : "â€”";
+      const countLabel = Number(item.count) > 1 ? formatNumber(item.count) : "—";
       return (
         '<button type="button" class="attention-item" data-nav-target="' +
         escapeHtml(item.target) +
@@ -4284,8 +4284,8 @@ function renderDashboardStockRisks(lowStockRows, expiringRows) {
       product: row.product_name,
       detail:
         current <= 0
-          ? `Out of stock Â· ${threshold}`
-          : `On hand ${formatNumber(current)} Â· ${threshold}`,
+          ? `Out of stock · ${threshold}`
+          : `On hand ${formatNumber(current)} · ${threshold}`,
       action: "Review stock",
       sort: current <= 0 ? 0 : 1,
     });
@@ -4303,7 +4303,7 @@ function renderDashboardStockRisks(lowStockRows, expiringRows) {
     risks.push({
       tone: days !== null && days <= 0 ? "danger" : "warning",
       product: row.product_name,
-      detail: `${expiryLabel} Â· ${formatNumber(row.quantity_remaining)} remaining`,
+      detail: `${expiryLabel} · ${formatNumber(row.quantity_remaining)} remaining`,
       action: "Review expiry",
       sort: days !== null && days <= 0 ? 0 : 2,
     });
@@ -4362,7 +4362,7 @@ function renderDashboardUsage(rows) {
         );
       })
       .join("") +
-    '</div><p class="dashboard-more-note">Issued quantity Â· top five products</p>';
+    '</div><p class="dashboard-more-note">Issued quantity · top five products</p>';
 }
 
 function renderDashboardPurchaseActivity(rows) {
@@ -4425,7 +4425,7 @@ async function loadDashboard() {
     year: "numeric",
   });
   $("#dashboard-scope").textContent = primaryRole
-    ? `All central stores Â· ${titleCaseWords(primaryRole)} view`
+    ? `All central stores · ${titleCaseWords(primaryRole)} view`
     : "All central stores";
   $("#dashboard-refresh-status").textContent = `Updated ${date.toLocaleTimeString("en-UG", {
     hour: "numeric",
@@ -4475,7 +4475,7 @@ async function loadDashboard() {
             (entry) =>
               '<div class="activity-row"><div class="activity-copy"><strong>' +
               escapeHtml(titleCaseWords(entry.action)) +
-              " Â· " +
+              " · " +
               escapeHtml(titleCaseWords(entry.entity_type || "record")) +
               "</strong><p>" +
               escapeHtml(entry.actor_name || "System") +
@@ -4714,7 +4714,7 @@ function openApprovalDetails(record) {
       : "") +
     "</div>";
   openDetailModal(
-    record.documentTypeLabel + " â€” " + (record.documentNumber || "Request " + record.id),
+    record.documentTypeLabel + " — " + (record.documentNumber || "Request " + record.id),
     links +
       '<section class="detail-section"><h4>Request details</h4><p>' +
       escapeHtml(record.purpose || "No additional details provided.") +
@@ -9155,7 +9155,7 @@ async function saveBusinessBranding(event) {
     profile.logoMimeType = brandingLogoDraft.logoMimeType;
   }
 
-  setFormStatus("branding-status", "Savingâ€¦", "info");
+  setFormStatus("branding-status", "Saving…", "info");
   try {
     const response = await api("/api/settings", {
       method: "PUT",
@@ -9224,7 +9224,7 @@ function bindBusinessBrandingControls() {
         clearLogo: false,
       };
       renderBrandingLogoPreview();
-      setFormStatus("branding-status", "Logo ready â€” click Save branding.", "info");
+      setFormStatus("branding-status", "Logo ready — click Save branding.", "info");
     };
     reader.onerror = () => {
       setFormStatus("branding-status", "Could not read that image.", "error");
@@ -9834,7 +9834,7 @@ async function handleCashRequisitionAction(action, id) {
     ]);
     showToast(
       action === "approve"
-        ? "Cash requisition approved â€” moved to Approved / release"
+        ? "Cash requisition approved — moved to Approved / release"
         : "Cash requisition submitted",
     );
   }
