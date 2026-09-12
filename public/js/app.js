@@ -11872,14 +11872,14 @@ function bindActions() {
 
 function registerLeforiServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  const SW_URL = "/sw.js?v=line-grids-by-role-v2";
+  const SW_URL = "/sw.js?v=mojibake-clean-v1";
   window.addEventListener("load", async () => {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
       await Promise.all(
         registrations.map(async (registration) => {
           const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || "";
-          if (!scriptURL.includes("line-grids-by-role-v2")) {
+          if (!scriptURL.includes("mojibake-clean-v1")) {
             await registration.unregister();
           }
         }),
