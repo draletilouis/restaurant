@@ -12,8 +12,8 @@ const { renderWorkbook } = require("./excel-export");
 
 const DOCUMENT_TYPES = {
   "purchase-orders": {
-    titleWord: "Purchase Order",
-    documentLabel: "Supplier Purchase Order",
+    titleWord: "Local Purchase Order",
+    documentLabel: "Supplier Local Purchase Order",
     entityType: "purchase_order",
     filePrefix: "PurchaseOrder",
   },
@@ -123,7 +123,7 @@ async function loadPurchaseOrder(db, id) {
     date: header.order_date,
     notes: header.notes,
     leftMetaRows: [
-      { label: "PO No.", value: header.order_number, bold: true },
+      { label: "LPO No.", value: header.order_number, bold: true },
       { label: "Order Date", value: formatDate(header.order_date) },
       { label: "Supplier", value: header.supplier_name || "-" },
       { label: "Expected", value: formatDate(header.expected_delivery_date) },
@@ -270,7 +270,7 @@ async function loadGoodsReceived(db, id) {
       { label: "GRN No.", value: header.grn_number, bold: true },
       { label: "Receipt Date", value: formatDate(header.receipt_date) },
       { label: "Supplier", value: header.supplier_name || "-" },
-      { label: "Purchase Order", value: header.order_number || "-" },
+      { label: "Local Purchase Order", value: header.order_number || "-" },
     ],
     rightMetaRows: [
       { label: "Received By", value: header.received_by_name || "-" },
@@ -352,7 +352,7 @@ async function loadSupplierInvoice(db, id) {
     ],
     rightMetaRows: [
       { label: "Payment", value: header.payment_status, bold: true },
-      { label: "Purchase Order", value: header.order_number || "-" },
+      { label: "Local Purchase Order", value: header.order_number || "-" },
       { label: "GRN", value: header.grn_number || "-" },
       { label: "Balance", value: formatCurrency(balance), bold: true },
     ],

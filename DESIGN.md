@@ -193,3 +193,11 @@ Use a tight action cluster on every operational table:
 - Empty state: **No activity in this range** + period — never a blank table body.
 - Purchase / All-purchases (LPO side): **line items** (item, qty, unit cost, line total), not header-level item counts.
 - Kitchen: **Requested On** / **Qty Requested**; footer totals skip dates, status, item counts, Waste %.
+
+
+## LPO unify (locked)
+
+- User-facing voice is **LPO** only (Local Purchase Order). Do not show PO and LPO as two document types.
+- One list (Procurement → LPOs), one number (`lpo_number`, mirrored on `order_number` for new rows).
+- Path: purchase requisition approved → create LPO → issue/send → goods received.
+- Legacy `purchase_order` numbering series is unused for new creates (`purchaseOrderPrefix` maps to `lpo`).

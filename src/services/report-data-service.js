@@ -94,7 +94,7 @@ const REPORT_CATALOG = [
   },
   {
     type: "purchases",
-    title: "Purchase Report (LPO / PO)",
+    title: "Purchase Report (LPO)",
     category: "procurement",
     description: "Purchase orders and LPOs with suppliers, values, and status.",
     tabs: ["procurement", "finance", "management"],
@@ -519,7 +519,7 @@ async function fetchPurchasesReport(db, range) {
   const documentCount = new Set(rows.map((row) => row.order_number)).size;
   return {
     type: "purchases",
-    title: "Purchase Report (LPO / PO)",
+    title: "Purchase Report (LPO)",
     period: range,
     summary: [
       summaryItem("Line items", rows.length),
@@ -528,8 +528,7 @@ async function fetchPurchasesReport(db, range) {
       summaryItem("With LPO", new Set(rows.filter((row) => row.lpo_number).map((row) => row.order_number)).size),
     ],
     columns: [
-      { key: "order_number", header: "PO", total: false },
-      { key: "lpo_number", header: "LPO", total: false },
+      { key: "order_number", header: "LPO", total: false },
       { key: "supplier_name", header: "Supplier", total: false },
       { key: "order_date", header: "Order Date", format: "date", total: false },
       { key: "expected_delivery_date", header: "Expected", format: "date", total: false },
@@ -541,8 +540,7 @@ async function fetchPurchasesReport(db, range) {
       { key: "status", header: "Status", total: false },
     ],
     columnsPdf: [
-      { key: "order_number", header: "PO", total: false },
-      { key: "lpo_number", header: "LPO", total: false },
+      { key: "order_number", header: "LPO", total: false },
       { key: "supplier_name", header: "Supplier", total: false },
       { key: "order_date", header: "Date", format: "date", total: false },
       { key: "product_name", header: "Item", total: false },
@@ -624,7 +622,7 @@ async function fetchAllPurchasesReport(db, range) {
     `SELECT *
      FROM (
        SELECT
-         'LPO / PO'::text AS source,
+         'LPO'::text AS source,
          COALESCE(po.lpo_number, po.order_number) AS reference,
          po.order_number AS secondary_reference,
          po.order_date AS purchase_date,
@@ -670,7 +668,7 @@ async function fetchAllPurchasesReport(db, range) {
     period: range,
     summary: [
       summaryItem("All lines", rows.length),
-      summaryItem("From LPO / PO", lpoRows.length),
+      summaryItem("From LPO", lpoRows.length),
       summaryItem("From cash requisitions", cashRows.length),
       summaryItem("Total value", rows.reduce((sum, row) => sum + number(row.amount), 0), "currency"),
     ],

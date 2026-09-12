@@ -300,7 +300,7 @@ function createProcurementRoutes(db) {
           defaultValue: linkedRequisition?.purchase_type,
         });
         if (linkedRequisition && purchaseType !== linkedRequisition.purchase_type) {
-          const error = new Error("Purchase order type must match the linked purchase requisition.");
+          const error = new Error("LPO type must match the linked purchase requisition.");
           error.status = 400;
           throw error;
         }
@@ -308,10 +308,11 @@ function createProcurementRoutes(db) {
         const paymentTerm = await resolvePaymentTerm(tx, req.body.paymentTermId, req.body.paymentTerms);
         const headerResult = await tx.exec(
           `INSERT INTO purchase_orders
-             (order_number, purchase_requisition_id, supplier_id, order_date, purchase_type, expected_delivery_date, payment_term_id, status_id, status, created_by, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             (order_number, lpo_number, purchase_requisition_id, supplier_id, order_date, purchase_type, expected_delivery_date, payment_term_id, status_id, status, created_by, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING *`,
           [
+            orderNumber,
             orderNumber,
             purchaseRequisitionId,
             req.body.supplierId,
@@ -344,12 +345,12 @@ function createProcurementRoutes(db) {
         }
 
         if (purchaseRequisitionId) {
-          const convertedStatus = await getStatus(tx, "purchase_requisition", "converted_to_po", { fallbackName: "Converted to PO" });
+          const convertedStatus = await getStatus(tx, "purchase_requisition", "converted_to_po", { fallbackName: "Converted to LPO" });
           await tx.exec(
             `UPDATE purchase_requisitions
              SET status_id = ?, status = ?, updated_at = NOW()
              WHERE id = ?`,
-            [convertedStatus?.id || null, convertedStatus?.status_name || "Converted to PO", purchaseRequisitionId]
+            [convertedStatus?.id || null, convertedStatus?.status_name || "Converted to LPO", purchaseRequisitionId]
           );
         }
 
@@ -373,7 +374,7 @@ function createProcurementRoutes(db) {
         [req.params.id]
       );
       if (!header) {
-        res.status(404).json({ success: false, message: "Purchase order not found" });
+        res.status(404).json({ success: false, message: "LPO not found" });
         return;
       }
 

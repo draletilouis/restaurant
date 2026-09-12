@@ -3,7 +3,7 @@ const { generateNextNumber } = require("./numbering-series-service");
 const LEGACY_SEQUENCE_MAP = {
   contractPrefix: "contract",
   purchaseRequisitionPrefix: "purchase_requisition",
-  purchaseOrderPrefix: "purchase_order",
+  purchaseOrderPrefix: "lpo", // unified: purchase orders use LPO numbering
   goodsReceivedPrefix: "goods_received_note",
   kitchenRequisitionPrefix: "kitchen_requisition",
   storeIssuePrefix: "store_issue",

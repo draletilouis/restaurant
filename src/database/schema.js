@@ -1410,6 +1410,11 @@ async function ensureDatabaseExists(connectionConfig) {
 }
 
 async function seedReferenceData(db) {
+  // Backfill lpo_number from order_number for unified LPO voice (one document number).
+  await db.exec(`UPDATE purchase_orders
+     SET lpo_number = order_number
+     WHERE lpo_number IS NULL`);
+
   await db.exec(
     `INSERT INTO business_profile (business_name, business_phone, business_location, owner_email, business_type)
      SELECT 'Kampala Kitchen Catering', '+256 414 250180', 'Plot 18, 5th Street, Industrial Area, Kampala', 'ops@kampalakitchen.ug', 'catering'
@@ -1831,7 +1836,7 @@ async function seedReferenceData(db) {
   const numberingSeries = [
     ["Contract", "contract", "CTR"],
     ["Purchase Requisition", "purchase_requisition", "PR"],
-    ["Purchase Order", "purchase_order", "PO"],
+    ["Purchase Order (legacy)", "purchase_order", "PO"],
     ["Goods Requisition", "goods_requisition", "GRQ"],
     ["Cash Requisition", "cash_requisition", "CRQ"],
     ["Local Purchase Order", "lpo", "LPO"],

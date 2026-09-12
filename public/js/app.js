@@ -178,7 +178,7 @@ const workspaceDescriptions = {
   approvals: "Review requests assigned to you and approve or reject them from one queue.",
   contracts: "Client agreements, delivery schedules and meal commitments.",
   procurement:
-    "Raise a purchase order when stock is needed, then receive, invoice, and pay.",
+    "Raise an LPO when stock is needed, then receive, invoice, and pay.",
   "cash-requisitions":
     "Request, release, and settle cash for operational spending.",
   "payment-vouchers":
@@ -218,7 +218,7 @@ const state = {
   filters: {
     contracts: { search: "", tab: "active" },
     approvals: { search: "", tab: "pending" },
-    procurement: { search: "", tab: "purchase orders", purchaseType: "" },
+    procurement: { search: "", tab: "lpos", purchaseType: "" },
     "cash-requisitions": { search: "", tab: "pending" },
     "payment-vouchers": { search: "", tab: "all" },
     inventory: { search: "", tab: "current stock" },
@@ -253,7 +253,7 @@ const workspaceTabs = {
   ],
   procurement: [
     { key: "purchase requisitions", label: "Purchase Requisitions" },
-    { key: "purchase orders", label: "Purchase Orders" },
+    { key: "lpos", label: "LPOs" },
     { key: "goods received", label: "Goods Received" },
     { key: "suppliers", label: "Suppliers" },
     { key: "invoices", label: "Invoices" },
@@ -387,7 +387,7 @@ const formModalMeta = {
   },
   "purchase-order-form": {
     eyebrow: "Procurement",
-    title: "Purchase Order",
+    title: "LPO",
     description:
       "Raise a supplier order when stock is needed. Link a requisition only if one already exists.",
   },
@@ -401,7 +401,7 @@ const formModalMeta = {
     eyebrow: "Finance",
     title: "Supplier Invoice",
     description:
-      "Record the supplier bill that relates to a purchase order or goods received note.",
+      "Record the supplier bill that relates to an LPO or goods received note.",
   },
   "payment-voucher-form": {
     eyebrow: "Finance",
@@ -2546,7 +2546,7 @@ const configurationFormFieldMap = {
         { value: "global", label: "Global" },
         { value: "contracts", label: "Contracts" },
         { value: "purchase_requisition", label: "Purchase Requisitions" },
-        { value: "purchase_order", label: "Purchase Orders" },
+        { value: "purchase_order", label: "LPOs" },
         { value: "goods_received", label: "Goods Received" },
         { value: "inventory", label: "Inventory" },
         { value: "stock_adjustment", label: "Stock Adjustments" },
@@ -2569,7 +2569,7 @@ const configurationFormFieldMap = {
       type: "select",
       options: [
         { value: "purchase_requisition", label: "Purchase Requisition" },
-        { value: "purchase_order", label: "Purchase Order" },
+        { value: "purchase_order", label: "LPO" },
         { value: "goods_received", label: "Goods Received Note" },
         { value: "kitchen_requisition", label: "Kitchen Requisition" },
         { value: "store_issue", label: "Store Issue" },
@@ -2608,7 +2608,7 @@ const configurationFormFieldMap = {
       type: "select",
       options: [
         { value: "purchase_requisition", label: "Purchase Requisition" },
-        { value: "purchase_order", label: "Purchase Order" },
+        { value: "purchase_order", label: "LPO" },
         { value: "stock_adjustment", label: "Stock Adjustment" },
         { value: "kitchen_requisition", label: "Kitchen Requisition" },
       ],
@@ -2969,14 +2969,14 @@ function fillWorkflowSelects() {
     orders,
     "id",
     (row) => `${row.order_number} | ${row.supplier_name || "Supplier"}`,
-    "Select purchase order",
+    "Select LPO",
   );
   fillSelect(
     "invoice-order-select",
     orders,
     "id",
     (row) => `${row.order_number} | ${row.supplier_name || "Supplier"}`,
-    "Link purchase order (optional)",
+    "Link LPO (optional)",
   );
   fillSelect(
     "invoice-grn-select",
@@ -4108,7 +4108,7 @@ function renderExceptionChips(data, approvalCount) {
   const chips = [
     { source: "approvals", label: "Needs your approval", value: approvalCount, target: "approvals", tab: "pending" },
     { source: "requisitions", label: "Open purchase requisitions", value: data.pendingPurchaseRequisitions, target: "procurement", tab: "purchase requisitions" },
-    { source: "orders", label: "POs awaiting receipt", value: data.pendingPurchaseOrders, target: "procurement", tab: "purchase orders" },
+    { source: "orders", label: "LPOs awaiting receipt", value: data.pendingPurchaseOrders, target: "procurement", tab: "lpos" },
     { source: "kitchen", label: "Kitchen waiting", value: data.pendingKitchenRequisitions, target: "kitchen", tab: "pending" },
     { source: "stock", label: "Stock risks", value: stockRisks, target: "inventory", tab: "alerts" },
     { source: "production", label: "Today's batches", value: data.todaysProductionBatches, target: "production", tab: "batches" },
@@ -4335,7 +4335,7 @@ function renderDashboardPurchaseActivity(rows) {
   }
   const visibleRows = (rows || []).slice(0, 4);
   if (!visibleRows.length) {
-    target.innerHTML = '<div class="empty-state"><strong>No purchase activity</strong><span>Purchase orders will appear here as procurement begins.</span></div>';
+    target.innerHTML = '<div class="empty-state"><strong>No purchase activity</strong><span>LPOs will appear here as procurement begins.</span></div>';
     return;
   }
   target.innerHTML = '<div class="pipeline-list">' +
@@ -5257,9 +5257,9 @@ function renderProcurement() {
     title: titleCaseWords(activeTab),
     description:
       activeTab === "purchase requisitions"
-        ? "Create the request, submit it for approval, then create the purchase order after approval."
+        ? "Create the request, submit it for approval, then create the LPO after approval."
         : activeTab === "invoices"
-          ? "Link a purchase order to carry over the supplier, terms, receipt, and total. Credit invoices need a due date."
+          ? "Link an LPO to carry over the supplier, terms, receipt, and total. Credit invoices need a due date."
           : activeTab === "cash requisitions"
             ? cashView === "pending"
               ? "Draft, submitted, and returned cash requests waiting for the next action."
@@ -5270,10 +5270,10 @@ function renderProcurement() {
                   : "All cash requisitions across the workflow."
           : activeTab === "payments"
             ? "Prepare payment vouchers from supplier invoices or approved cash requisitions."
-            : "Manage purchase orders, receipts, invoices, and payment vouchers in one place.",
+            : "Manage LPOs, receipts, invoices, and payment vouchers in one place.",
     searchPlaceholder:
-      activeTab === "purchase orders"
-        ? "Search purchase orders..."
+      activeTab === "lpos"
+        ? "Search LPOs..."
         : activeTab === "goods received"
           ? "Search goods received notes..."
           : activeTab === "suppliers"
@@ -5286,13 +5286,13 @@ function renderProcurement() {
                 ? "Search payment vouchers..."
                 : "Search purchase requisitions...",
     actions:
-      activeTab === "purchase orders"
+      activeTab === "lpos"
         ? [
             { type: "reset", label: "Reset" },
             { type: "export", label: "Export CSV" },
             {
               type: "open-form",
-              label: "New Purchase Order",
+              label: "New LPO",
               formId: "purchase-order-form",
               className: "refresh-btn",
               reset: true,
@@ -5359,7 +5359,7 @@ function renderProcurement() {
                     { type: "export", label: "Export CSV" },
                     {
                       type: "open-form",
-                      label: "New Purchase Order",
+                      label: "New LPO",
                       formId: "purchase-order-form",
                       reset: true,
                     },
@@ -5378,7 +5378,7 @@ function renderProcurement() {
   );
   purchaseTypeFilter?.classList.toggle(
     "hidden",
-    !["purchase requisitions", "purchase orders", "goods received"].includes(
+    !["purchase requisitions", "lpos", "goods received"].includes(
       activeTab,
     ),
   );
@@ -5497,7 +5497,7 @@ function renderProcurement() {
   renderTable(
     "purchase-orders-table",
     [
-      { key: "order_number", label: "PO" },
+      { key: "lpo_number", label: "LPO", render: (row) => escapeHtml(row.lpo_number || row.order_number || "-") },
       {
         key: "purchase_type",
         label: "Purchase Type",
@@ -5549,14 +5549,14 @@ function renderProcurement() {
       },
     ],
     orderRows,
-    { emptyMessage: "No purchase orders yet.", hideTableFooter: true },
+    { emptyMessage: "No LPOs yet.", hideTableFooter: true },
   );
 
   renderTable(
     "goods-received-table",
     [
       { key: "grn_number", label: "GRN" },
-      { key: "order_number", label: "PO" },
+      { key: "lpo_number", label: "LPO", render: (row) => escapeHtml(row.lpo_number || row.order_number || "-") },
       {
         key: "purchase_type",
         label: "Purchase Type",
@@ -5639,9 +5639,9 @@ function renderProcurement() {
     { label: "Total Amount", key: "total_amount" },
   ];
 
-  if (activeTab === "purchase orders") {
+  if (activeTab === "lpos") {
     workspaceColumns = [
-      { key: "order_number", label: "PO" },
+      { key: "lpo_number", label: "LPO", render: (row) => escapeHtml(row.lpo_number || row.order_number || "-") },
       { key: "supplier_name", label: "Supplier" },
       {
         key: "order_date",
@@ -5700,7 +5700,7 @@ function renderProcurement() {
       ]),
     );
     workspaceOptions = {
-      emptyMessage: "No purchase orders match the current filter.",
+      emptyMessage: "No LPOs match the current filter.",
       hideTableFooter: true,
     };
     exportFilename = "purchase-orders.csv";
@@ -5713,7 +5713,7 @@ function renderProcurement() {
   } else if (activeTab === "goods received") {
     workspaceColumns = [
       { key: "grn_number", label: "GRN Number" },
-      { key: "order_number", label: "Purchase Order" },
+      { key: "lpo_number", label: "LPO", render: (row) => escapeHtml(row.lpo_number || row.order_number || "-") },
       { key: "supplier_name", label: "Supplier" },
       {
         key: "receipt_date",
@@ -6082,7 +6082,7 @@ function renderProcurement() {
 
 async function loadProcurement() {
   renderPlaceholder("purchase-requisitions-table", "Loading requisitions...");
-  renderPlaceholder("purchase-orders-table", "Loading purchase orders...");
+  renderPlaceholder("purchase-orders-table", "Loading LPOs...");
   renderPlaceholder("goods-received-table", "Loading receipts...");
   renderPlaceholder("supplier-invoices-table", "Loading invoices...");
 
@@ -7956,13 +7956,13 @@ function getReportCards() {
     {
       key: "procurement",
       title: "Procurement Pipeline",
-      summary: "Purchase requisitions and purchase orders.",
+      summary: "Purchase requisitions and LPOs.",
       tabs: ["procurement", "management"],
     },
     {
       key: "purchases",
-      title: "Purchase Report (LPO / PO)",
-      summary: "Purchase orders and LPOs with suppliers, values, and status.",
+      title: "Purchase Report (LPO)",
+      summary: "LPOs with suppliers, values, and status.",
       tabs: ["procurement", "finance", "management"],
     },
     {
@@ -7974,7 +7974,7 @@ function getReportCards() {
     {
       key: "all-purchases",
       title: "All Purchases",
-      summary: "Combined purchases from LPOs/POs and cash requisitions.",
+      summary: "Combined purchases from LPOs and cash requisitions.",
       tabs: ["finance", "procurement", "management"],
     },
     {
@@ -9589,13 +9589,13 @@ async function handlePurchaseOrderAction(action, id) {
       body: JSON.stringify({}),
     });
     await Promise.all([loadProcurement(), loadDashboard()]);
-    showToast("Purchase order sent");
+    showToast("LPO sent");
     return;
   }
 
   const response = await api(`/api/procurement/purchase-orders/${id}`);
   if (action === "view") {
-    renderDetailPayload("Purchase Order", response.data);
+    renderDetailPayload("LPO", response.data);
     return;
   }
 
@@ -11335,12 +11335,12 @@ function bindActions() {
         paymentTermId: form.get("paymentTermId")
           ? Number(form.get("paymentTermId"))
           : null,
-        items: parseJsonArray(form.get("itemsJson"), "Purchase order items"),
+        items: parseJsonArray(form.get("itemsJson"), "LPO items"),
       }),
     });
     resetForm("purchase-order-form");
     await Promise.all([loadProcurement(), loadDashboard()]);
-    showToast("Purchase order created");
+    showToast("LPO created");
   });
 
   bindForm("goods-received-form", async (form) => {
