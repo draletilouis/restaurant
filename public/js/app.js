@@ -371,13 +371,13 @@ const formModalMeta = {
     eyebrow: "Procurement",
     title: "Purchase Requisition",
     description:
-      "Choose the purchase period, add the ingredients and quantities needed, save the draft, then submit it for approval.",
+      "Add the products and quantities needed. Costs and supplier are set later on the LPO.",
   },
   "purchase-requisition-approve-form": {
     eyebrow: "Procurement",
     title: "Approve Purchase Requisition",
     description:
-      "Review approved quantities, supplier choices, and commercial assumptions for this request.",
+      "Confirm or adjust approved quantities. Supplier and unit cost are set when the LPO is created.",
   },
   "purchase-requisition-reject-form": {
     eyebrow: "Procurement",
@@ -776,7 +776,7 @@ const collectionEditorConfigs = {
   },
   "purchase-requisition-form": {
     itemsJson: {
-      addLabel: "Add Requisition Item",
+      addLabel: "Add Item",
       fields: [
         {
           key: "productId",
@@ -793,34 +793,11 @@ const collectionEditorConfigs = {
         },
         {
           key: "quantityRequested",
-          label: "Requested Qty",
+          label: "Qty",
           type: "number",
-          min: 0,
+          min: 0.01,
           step: "0.01",
           defaultValue: 0,
-        },
-        {
-          key: "quantityApproved",
-          label: "Approved Qty",
-          type: "number",
-          min: 0,
-          step: "0.01",
-          defaultValue: 0,
-        },
-        {
-          key: "estimatedUnitCost",
-          label: "Estimated Unit Cost",
-          type: "number",
-          min: 0,
-          step: "0.01",
-          defaultValue: 0,
-        },
-        {
-          key: "preferredSupplierId",
-          label: "Preferred Supplier",
-          type: "select",
-          source: "suppliers",
-          optional: true,
         },
       ],
     },
@@ -838,6 +815,25 @@ const collectionEditorConfigs = {
           hidden: true,
         },
         {
+          key: "productName",
+          label: "Product",
+          type: "text",
+          readOnly: true,
+        },
+        {
+          key: "unitCode",
+          label: "Unit",
+          type: "text",
+          readOnly: true,
+        },
+        {
+          key: "quantityRequested",
+          label: "Requested",
+          type: "number",
+          readOnly: true,
+          step: "0.01",
+        },
+        {
           key: "quantityApproved",
           label: "Approved Qty",
           type: "number",
@@ -845,27 +841,12 @@ const collectionEditorConfigs = {
           step: "0.01",
           defaultValue: 0,
         },
-        {
-          key: "estimatedUnitCost",
-          label: "Estimated Unit Cost",
-          type: "number",
-          min: 0,
-          step: "0.01",
-          defaultValue: 0,
-        },
-        {
-          key: "preferredSupplierId",
-          label: "Preferred Supplier",
-          type: "select",
-          source: "suppliers",
-          optional: true,
-        },
       ],
     },
   },
   "purchase-order-form": {
     itemsJson: {
-      addLabel: "Add Order Item",
+      addLabel: "Add LPO Item",
       fields: [
         {
           key: "productId",
@@ -882,9 +863,9 @@ const collectionEditorConfigs = {
         },
         {
           key: "quantityOrdered",
-          label: "Quantity Ordered",
+          label: "Qty",
           type: "number",
-          min: 0,
+          min: 0.01,
           step: "0.01",
           defaultValue: 0,
         },
@@ -895,6 +876,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
       ],
     },
@@ -931,6 +913,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
         {
           key: "batchNumber",
@@ -1007,7 +990,7 @@ const collectionEditorConfigs = {
         },
         {
           key: "requestedQuantity",
-          label: "Requested Quantity",
+          label: "Qty",
           type: "number",
           min: 0,
           step: "0.01",
@@ -1029,8 +1012,27 @@ const collectionEditorConfigs = {
           hidden: true,
         },
         {
+          key: "productName",
+          label: "Product",
+          type: "text",
+          readOnly: true,
+        },
+        {
+          key: "unitCode",
+          label: "Unit",
+          type: "text",
+          readOnly: true,
+        },
+        {
+          key: "requestedQuantity",
+          label: "Requested",
+          type: "number",
+          readOnly: true,
+          step: "0.01",
+        },
+        {
           key: "approvedQuantity",
-          label: "Approved Quantity",
+          label: "Approved Qty",
           type: "number",
           min: 0,
           step: "0.01",
@@ -1059,10 +1061,17 @@ const collectionEditorConfigs = {
           source: "products",
         },
         {
+          key: "unitCode",
+          label: "Unit",
+          type: "text",
+          readOnly: true,
+          derived: "productUnit",
+        },
+        {
           key: "issuedQuantity",
-          label: "Issued Quantity",
+          label: "Qty",
           type: "number",
-          min: 0,
+          min: 0.01,
           step: "0.01",
           defaultValue: 0,
         },
@@ -1073,6 +1082,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
       ],
     },
@@ -1088,10 +1098,17 @@ const collectionEditorConfigs = {
           source: "products",
         },
         {
+          key: "unitCode",
+          label: "Unit",
+          type: "text",
+          readOnly: true,
+          derived: "productUnit",
+        },
+        {
           key: "quantityConsumed",
-          label: "Quantity Consumed",
+          label: "Qty",
           type: "number",
-          min: 0,
+          min: 0.01,
           step: "0.01",
           defaultValue: 0,
         },
@@ -1109,10 +1126,17 @@ const collectionEditorConfigs = {
           source: "products",
         },
         {
+          key: "unitCode",
+          label: "Unit",
+          type: "text",
+          readOnly: true,
+          derived: "productUnit",
+        },
+        {
           key: "quantityReturned",
-          label: "Quantity Returned",
+          label: "Qty",
           type: "number",
-          min: 0,
+          min: 0.01,
           step: "0.01",
           defaultValue: 0,
         },
@@ -1123,6 +1147,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
       ],
     },
@@ -1159,6 +1184,7 @@ const collectionEditorConfigs = {
           step: "0.01",
           defaultValue: 0,
           hidden: true,
+          fillFromProductCost: true,
         },
       ],
     },
@@ -1195,6 +1221,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
       ],
     },
@@ -1231,6 +1258,7 @@ const collectionEditorConfigs = {
           min: 0,
           step: "0.01",
           defaultValue: 0,
+          fillFromProductCost: true,
         },
         {
           key: "batchNumber",
@@ -1306,9 +1334,7 @@ function getCollectionSourceOptions(source) {
   if (source === "products") {
     return (state.reference.products || []).map((row) => ({
       value: row.id,
-      label: getProductUnitLabel(row)
-        ? `${row.name} (${getProductUnitLabel(row)})`
-        : row.name,
+      label: row.name,
     }));
   }
   if (source === "suppliers") {
@@ -1403,7 +1429,7 @@ function coerceCollectionValue(field, rawValue, checked = false) {
 function renderCollectionFieldInput(formId, fieldName, rowIndex, field, row) {
   let value = row?.[field.key];
   if (field.derived === "productUnit") {
-    value = getProductUnitLabel(findReferenceProduct(row?.productId)) || "—";
+    value = getProductUnitLabel(findReferenceProduct(row?.productId)) || "-";
   }
   const dataset = `data-collection-form="${formId}" data-collection-field="${fieldName}" data-row-index="${rowIndex}" data-field-key="${field.key}" aria-label="${escapeHtml(field.label)} row ${rowIndex + 1}" id="collection-${formId}-${fieldName}-${rowIndex}-${field.key}"`;
   if (field.type === "select") {
@@ -1524,6 +1550,17 @@ function handleCollectionEditorInput(element) {
     element.value,
     element.checked,
   );
+  if (fieldKey === "productId") {
+    const product = findReferenceProduct(rows[Number(rowIndex)].productId);
+    const standardCost = Number(product?.standard_cost || 0);
+    for (const costField of config.fields) {
+      if (!costField.fillFromProductCost) continue;
+      const current = Number(rows[Number(rowIndex)][costField.key] || 0);
+      if (!current) {
+        rows[Number(rowIndex)][costField.key] = standardCost;
+      }
+    }
+  }
   const shouldRerender = fieldKey === "productId";
   setCollectionData(formId, fieldName, rows, { render: shouldRerender });
 }
@@ -9529,11 +9566,12 @@ async function handlePurchaseRequisitionAction(action, id) {
       "itemsJson",
       response.data.items.map((item) => ({
         id: item.id,
+        productName: item.product_name || "",
+        unitCode: item.unit_code || item.unit_name || "",
+        quantityRequested: Number(item.quantity_requested || 0),
         quantityApproved: Number(
           item.quantity_approved || item.quantity_requested || 0,
         ),
-        estimatedUnitCost: Number(item.estimated_unit_cost || 0),
-        preferredSupplierId: item.preferred_supplier_id || null,
       })),
     );
     focusForm("purchase-requisition-approve-form");
@@ -9549,8 +9587,6 @@ async function handlePurchaseRequisitionAction(action, id) {
           quantityApproved: Number(
             item.quantity_approved || item.quantity_requested || 0,
           ),
-          estimatedUnitCost: Number(item.estimated_unit_cost || 0),
-          preferredSupplierId: item.preferred_supplier_id || null,
         })),
       }),
     });
@@ -9570,13 +9606,18 @@ async function handlePurchaseRequisitionAction(action, id) {
     setCollectionData(
       "purchase-order-form",
       "itemsJson",
-      response.data.items.map((item) => ({
-        productId: item.product_id,
-        quantityOrdered: Number(
-          item.quantity_approved || item.quantity_requested || 0,
-        ),
-        unitCost: Number(item.estimated_unit_cost || 0),
-      })),
+      response.data.items.map((item) => {
+        const product = findReferenceProduct(item.product_id);
+        return {
+          productId: item.product_id,
+          quantityOrdered: Number(
+            item.quantity_approved || item.quantity_requested || 0,
+          ),
+          unitCost: Number(
+            item.estimated_unit_cost || product?.standard_cost || 0,
+          ),
+        };
+      }),
     );
     focusForm("purchase-order-form");
   }
@@ -9888,6 +9929,9 @@ async function handleKitchenRequisitionAction(action, id) {
       "itemsJson",
       response.data.items.map((item) => ({
         id: item.id,
+        productName: item.product_name || "",
+        unitCode: item.unit_code || item.unit_name || "",
+        requestedQuantity: Number(item.requested_quantity || 0),
         approvedQuantity: Number(
           item.approved_quantity || item.requested_quantity || 0,
         ),

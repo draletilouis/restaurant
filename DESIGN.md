@@ -201,3 +201,11 @@ Use a tight action cluster on every operational table:
 - One list (Procurement → LPOs), one number (`lpo_number`, mirrored on `order_number` for new rows).
 - Path: purchase requisition approved → create LPO → issue/send → goods received.
 - Legacy `purchase_order` numbering series is unused for new creates (`purchaseOrderPrefix` maps to `lpo`).
+
+
+## Line grids by role (locked)
+
+- **Requester grids** (purchase requisition, goods requisition, kitchen requisition): Product · Unit · Qty only. No approved qty, cost, or supplier.
+- **Approver grids**: show Product / Unit / Requested for context; edit **Approved Qty** only.
+- **Buyer / stores grids** (LPO, GRN, issues, returns): Product · Unit · Qty · Unit Cost. Unit Cost defaults from product standard cost when empty; supplier is header-level on the LPO, not per line.
+- Product select labels are the product **name only** — unit lives in the Unit column.
