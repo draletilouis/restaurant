@@ -341,6 +341,72 @@ function createMasterDataRoutes(db) {
     }
   });
 
+
+  router.delete("/products/:id", async (req, res, next) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await db.get("SELECT * FROM products WHERE id = ?", [id]);
+      if (!existing) {
+        const error = new Error("Product not found");
+        error.status = 404;
+        throw error;
+      }
+
+      const usageChecks = [
+        { table: "purchase_requisition_items", column: "product_id", label: "purchase requisition lines" },
+        { table: "purchase_order_items", column: "product_id", label: "purchase order lines" },
+        { table: "goods_received_note_items", column: "product_id", label: "goods received lines" },
+        { table: "contract_items", column: "product_id", label: "contract items" },
+        { table: "kitchen_requisition_items", column: "product_id", label: "kitchen requisition lines" },
+        { table: "store_issue_items", column: "product_id", label: "store issue lines" },
+        { table: "stock_batches", column: "product_id", label: "stock batches" },
+        { table: "stock_movements", column: "product_id", label: "stock movements" },
+        { table: "stock_adjustment_items", column: "product_id", label: "stock adjustment lines" },
+        { table: "wastage_records", column: "product_id", label: "wastage records" },
+        { table: "production_batch_items", column: "product_id", label: "production batch lines" },
+      ];
+      const blockers = [];
+      for (const check of usageChecks) {
+        try {
+          const row = await db.get(
+            `SELECT COUNT(*)::int AS count FROM ${check.table} WHERE ${check.column} = ?`,
+            [id]
+          );
+          if (row?.count > 0) blockers.push(`${row.count} ${check.label}`);
+        } catch (error) {
+          if (!/does not exist|undefined_table|undefined_column/i.test(String(error.message || error))) {
+            throw error;
+          }
+        }
+      }
+      const balance = await db.get(
+        `SELECT COALESCE(SUM(quantity_on_hand), 0)::float AS qty
+         FROM inventory_balances WHERE product_id = ?`,
+        [id]
+      ).catch(() => ({ qty: 0 }));
+      if (Number(balance?.qty || 0) > 0) {
+        blockers.push(`${balance.qty} on-hand stock`);
+      }
+      if (blockers.length) {
+        const error = new Error(
+          `Cannot delete: still used by ${blockers.join(", ")}. Clear or reassign those records first.`
+        );
+        error.status = 409;
+        throw error;
+      }
+
+      await db.exec("DELETE FROM inventory_balances WHERE product_id = ?", [id]);
+      const result = await db.exec("DELETE FROM products WHERE id = ? RETURNING *", [id]);
+      await logAudit(db, req.session.user.id, "delete", "product", id, {
+        name: existing.name,
+        sku: existing.sku,
+      });
+      res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/reference-data", async (req, res, next) => {
     try {
       const data = await getConfigurationReferenceData(db);

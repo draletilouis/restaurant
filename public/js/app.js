@@ -4915,8 +4915,9 @@ async function loadMasterData() {
         label: "Actions",
         render: (row) =>
           renderActionButtons([
+            { entity: "product", id: row.id, label: "Edit", action: "edit", primary: true },
             { entity: "product", id: row.id, label: "View", action: "view" },
-            { entity: "product", id: row.id, label: "Edit", action: "edit" },
+            { entity: "product", id: row.id, label: "Delete", action: "delete" },
           ]),
       },
     ],
@@ -6444,8 +6445,9 @@ function renderInventory() {
         label: "Actions",
         render: (row) =>
           renderActionButtons([
+            { entity: "product", id: row.id, label: "Edit", action: "edit", primary: true },
             { entity: "product", id: row.id, label: "View", action: "view" },
-            { entity: "product", id: row.id, label: "Edit", action: "edit" },
+            { entity: "product", id: row.id, label: "Delete", action: "delete" },
           ]),
       },
     ];
@@ -10096,14 +10098,20 @@ async function handleRowAction(action, entity, id, type = null) {
   if (entity === "product") {
     if (action === "edit") {
       handleProductEdit(id);
-    } else {
-      renderDetailPayload(
-        "Product Detail",
-        (state.moduleData.masterData?.products || []).find(
-          (row) => Number(row.id) === Number(id),
-        ),
-      );
+      return;
     }
+    if (action === "delete") {
+      await api(`/api/master-data/products/${id}`, { method: "DELETE" });
+      await Promise.all([loadMasterData(), loadReferenceData(), loadDashboard().catch(() => null)]);
+      showToast("Deleted");
+      return;
+    }
+    renderDetailPayload(
+      "Product Detail",
+      (state.moduleData.masterData?.products || []).find(
+        (row) => Number(row.id) === Number(id),
+      ),
+    );
     return;
   }
   if (entity === "kitchen-requisition") {
