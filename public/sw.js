@@ -1,4 +1,4 @@
-﻿const CACHE_VERSION = "lefori-pwa-v1";
+﻿const CACHE_VERSION = "lefori-pwa-v2-grids";
 const SHELL_ASSETS = [
   "/",
   "/index.html",
@@ -52,7 +52,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache first, then network.
+  // App shell JS/CSS: network first so deploys are visible, cache as fallback.
+  if (/\.(js|css)$/i.test(url.pathname) || url.pathname === "/manifest.webmanifest") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const copy = response.clone();
+            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Other static assets: cache first, then network.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
