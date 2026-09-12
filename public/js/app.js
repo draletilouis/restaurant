@@ -11872,10 +11872,30 @@ function bindActions() {
 
 function registerLeforiServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js?v=line-grids-by-role-v1").catch(() => {
+  const SW_URL = "/sw.js?v=line-grids-by-role-v2";
+  window.addEventListener("load", async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(
+        registrations.map(async (registration) => {
+          const scriptURL = registration.active?.scriptURL || registration.installing?.scriptURL || registration.waiting?.scriptURL || "";
+          if (!scriptURL.includes("line-grids-by-role-v2")) {
+            await registration.unregister();
+          }
+        }),
+      );
+      if (window.caches?.keys) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter((key) => key.startsWith("lefori-pwa-") && key !== "lefori-pwa-v3-grids")
+            .map((key) => caches.delete(key)),
+        );
+      }
+      await navigator.serviceWorker.register(SW_URL);
+    } catch (_error) {
       /* Ignore registration failures on unsupported hosts. */
-    });
+    }
   });
 }
 
