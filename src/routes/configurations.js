@@ -7,6 +7,7 @@ const {
   getDefinition,
   listConfigurationBundle,
   listConfigurationRows,
+  deleteConfigurationRow,
   toggleConfigurationRow,
   updateConfigurationRow,
 } = require("../services/configuration-service");
@@ -70,6 +71,15 @@ function createConfigurationsRoutes(db) {
   router.post("/:type/:id/toggle", async (req, res, next) => {
     try {
       const row = await toggleConfigurationRow(db, req.params.type, req.params.id, req.body.isActive !== false, req.session.user.id);
+      res.json({ success: true, data: row });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:type/:id", async (req, res, next) => {
+    try {
+      const row = await deleteConfigurationRow(db, req.params.type, req.params.id, req.session.user.id);
       res.json({ success: true, data: row });
     } catch (error) {
       next(error);

@@ -468,6 +468,88 @@ async function updateConfigurationRow(db, type, id, payload, actorUserId = null)
   return result.rows[0];
 }
 
+
+const CONFIG_USAGE_CHECKS = {
+  units: [
+    { table: "products", column: "unit_of_measure_id", label: "products" },
+  ],
+  "product-categories": [
+    { table: "products", column: "product_category_id", label: "products" },
+  ],
+  stores: [
+    { table: "inventory_balances", column: "store_location_id", label: "inventory balances" },
+    { table: "stock_batches", column: "store_location_id", label: "stock batches" },
+    { table: "stock_movements", column: "store_location_id", label: "stock movements" },
+    { table: "stock_adjustments", column: "store_location_id", label: "stock adjustments" },
+    { table: "goods_received_notes", column: "store_location_id", label: "goods received notes" },
+    { table: "store_issues", column: "source_store_location_id", label: "store issues" },
+    { table: "kitchen_requisitions", column: "source_store_location_id", label: "kitchen requisitions" },
+  ],
+  departments: [
+    { table: "purchase_requisitions", column: "department_id", label: "purchase requisitions" },
+    { table: "cash_requisitions", column: "department_id", label: "cash requisitions" },
+    { table: "kitchen_requisitions", column: "department_id", label: "kitchen requisitions" },
+    { table: "store_issues", column: "department_id", label: "store issues" },
+    { table: "production_batches", column: "department_id", label: "production batches" },
+  ],
+};
+
+async function assertConfigurationDeletable(db, type, id) {
+  const checks = CONFIG_USAGE_CHECKS[type] || [];
+  const blockers = [];
+  for (const check of checks) {
+    try {
+      const row = await db.get(
+        `SELECT COUNT(*)::int AS count FROM ${check.table} WHERE ${check.column} = ?`,
+        [id]
+      );
+      if (row?.count > 0) {
+        blockers.push(`${row.count} ${check.label}`);
+      }
+    } catch (error) {
+      // Table/column may not exist in older DBs — skip that check.
+      if (!/does not exist|undefined_table|undefined_column/i.test(String(error.message || error))) {
+        throw error;
+      }
+    }
+  }
+  if (blockers.length) {
+    const error = new Error(
+      `Cannot delete: still used by ${blockers.join(", ")}. Remove or reassign those records first.`
+    );
+    error.status = 409;
+    throw error;
+  }
+}
+
+async function deleteConfigurationRow(db, type, id, actorUserId = null) {
+  const definition = getDefinition(type);
+  const existing = await db.get(`SELECT ${definition.select} FROM ${definition.table} WHERE id = ?`, [id]);
+  if (!existing) {
+    const error = new Error("Configuration item not found");
+    error.status = 404;
+    throw error;
+  }
+
+  await assertConfigurationDeletable(db, type, id);
+
+  await db.exec(`DELETE FROM configuration_items WHERE source_table = ? AND source_id = ?`, [
+    definition.table,
+    id,
+  ]);
+  const result = await db.exec(
+    `DELETE FROM ${definition.table} WHERE id = ? RETURNING ${definition.select}`,
+    [id]
+  );
+  if (!result.rows?.[0]) {
+    const error = new Error("Configuration item not found");
+    error.status = 404;
+    throw error;
+  }
+  await logAudit(db, actorUserId, "delete", type, Number(id), existing);
+  return result.rows[0];
+}
+
 async function toggleConfigurationRow(db, type, id, isActive, actorUserId = null) {
   const definition = getDefinition(type);
   const setUpdatedAt = definition.select.includes("updated_at") ? ", updated_at = NOW()" : "";
@@ -537,6 +619,7 @@ module.exports = {
   listConfigurationTypes,
   normalizePayload,
   syncConfigurationMirrors,
+  deleteConfigurationRow,
   toggleConfigurationRow,
   updateConfigurationRow,
 };

@@ -8273,12 +8273,19 @@ function prepareConfigurationForm(type, row = null) {
     "Create or update a reusable configuration item.";
 }
 
+const CONFIG_HARD_DELETE_TYPES = new Set([
+  "units",
+  "product-categories",
+  "stores",
+  "departments",
+]);
+
 function getConfigurationColumns(type) {
   const actionColumn = {
     key: "actions",
     label: "Actions",
-    render: (row) =>
-      renderActionButtons([
+    render: (row) => {
+      const buttons = [
         {
           entity: "configuration",
           id: row.id,
@@ -8287,14 +8294,26 @@ function getConfigurationColumns(type) {
           action: "edit",
           primary: true,
         },
-        {
+      ];
+      if (CONFIG_HARD_DELETE_TYPES.has(type)) {
+        buttons.push({
+          entity: "configuration",
+          id: row.id,
+          type: type,
+          label: "Delete",
+          action: "delete",
+        });
+      } else {
+        buttons.push({
           entity: "configuration",
           id: row.id,
           type: type,
           label: row.is_active ? "Deactivate" : "Activate",
           action: "toggle",
-        },
-      ]),
+        });
+      }
+      return renderActionButtons(buttons);
+    },
   };
   const activeColumn = {
     key: "is_active",
@@ -10138,6 +10157,19 @@ async function handleRowAction(action, entity, id, type = null) {
         configurationType: type,
         configurationRow: row,
       });
+      return;
+    }
+    if (action === "delete") {
+      await api(`/api/configurations/${type}/${id}`, {
+        method: "DELETE",
+      });
+      await Promise.all([
+        type === "approval-workflows"
+          ? loadApprovalMatrix()
+          : loadConfigurations(),
+        loadReferenceData(),
+      ]);
+      showToast("Deleted");
       return;
     }
     if (action === "toggle") {

@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const ExcelJS = require("exceljs");
 const { formatCurrency, formatDate } = require("./branded-document");
@@ -88,13 +88,13 @@ function excelFormat(column) {
 
 async function buildReportWorkbook(report, branding = {}) {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Cater ERP";
+  workbook.creator = "Lefori";
   workbook.created = new Date();
 
-  const columns = report.columns || [];
+  const columns = (report.columnsPdf && report.columnsPdf.length ? report.columnsPdf : report.columns) || [];
   const rows = report.rows || [];
   const period = report.period || {};
-  const businessName = branding.business?.business_name || "Cater ERP";
+  const businessName = branding.business?.business_name || "Lefori";
   const periodLabel =
     period.startDate && period.endDate
       ? `${period.startDate} to ${period.endDate}`
@@ -106,13 +106,16 @@ async function buildReportWorkbook(report, branding = {}) {
   styleTitle(sheet, report.title, `${businessName} | ${periodLabel}`, columns.length);
   embedWorkbookLogo(workbook, sheet, branding.business);
 
-  (report.summary || []).forEach((item, index) => {
+  {
     const row = sheet.getRow(3);
-    if (index === 0) {
-      row.getCell(1).value = "Summary";
-      row.getCell(1).font = { bold: true };
+    const parts = (report.summary || []).map((item) => `${item.label}: ${item.display != null ? item.display : item.value}`);
+    row.getCell(1).value = parts.length ? parts.join("  |  ") : "";
+    row.getCell(1).font = { size: 10, color: { argb: "FF0E6B66" }, bold: true };
+    if (columns.length > 1) {
+      sheet.mergeCells(3, 1, 3, columns.length);
     }
-  });
+    row.height = 22;
+  }
 
   if (report.summary?.length) {
     const summarySheet = workbook.addWorksheet("Summary");
@@ -147,7 +150,7 @@ async function buildReportWorkbook(report, branding = {}) {
   styleTableHeader(headerRow);
 
   if (!rows.length) {
-    sheet.getCell(5, 1).value = "No records for this reporting period.";
+    sheet.getCell(5, 1).value = "No activity in this range.";
     sheet.getCell(5, 1).font = { italic: true, color: { argb: "FF64748B" } };
   } else {
     rows.forEach((row) => {

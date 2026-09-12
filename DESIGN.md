@@ -184,3 +184,12 @@ Use a tight action cluster on every operational table:
 3. **Export** (Print / PDF / Excel) under a single Export menu.
 4. Extra verbs under **More** when needed — never a flat row of peer teal links.
 5. **Approve / Reject** for Submitted work live on **Approvals**, not on module lists.
+
+## Report print / export chrome (locked)
+
+- Lefori letterhead: teal accent (#0e6b66), Inter, logo or wordmark fallback.
+- Summary as **KPI chips** (HTML/PDF), not a Summary table; Excel puts the same metrics on a teal strip under the title.
+- Prefer columnsPdf for HTML/PDF/Excel when present (tighter print pack); screen/API may keep richer columns.
+- Empty state: **No activity in this range** + period — never a blank table body.
+- Purchase / All-purchases (LPO side): **line items** (item, qty, unit cost, line total), not header-level item counts.
+- Kitchen: **Requested On** / **Qty Requested**; footer totals skip dates, status, item counts, Waste %.

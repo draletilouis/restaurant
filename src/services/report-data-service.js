@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 const { formatCurrency } = require("./branded-document");
 
@@ -504,35 +504,52 @@ async function fetchPurchasesReport(db, range) {
             po.expected_delivery_date,
             po.purchase_type,
             po.status,
-            COALESCE(SUM(poi.line_total), 0) AS total_amount,
-            COALESCE(COUNT(poi.id), 0)::int AS item_count
-     FROM purchase_orders po
+            p.name AS product_name,
+            poi.quantity_ordered,
+            poi.unit_cost,
+            poi.line_total
+     FROM purchase_order_items poi
+     INNER JOIN purchase_orders po ON po.id = poi.purchase_order_id
      INNER JOIN suppliers s ON s.id = po.supplier_id
-     LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
+     INNER JOIN products p ON p.id = poi.product_id
      WHERE po.order_date BETWEEN ? AND ?
-     GROUP BY po.id, s.name
-     ORDER BY po.order_date DESC, po.id DESC`,
+     ORDER BY po.order_date DESC, po.id DESC, p.name ASC`,
     [range.startDate, range.endDate]
   );
+  const documentCount = new Set(rows.map((row) => row.order_number)).size;
   return {
     type: "purchases",
     title: "Purchase Report (LPO / PO)",
     period: range,
     summary: [
-      summaryItem("Purchase documents", rows.length),
-      summaryItem("Order value", rows.reduce((sum, row) => sum + number(row.total_amount), 0), "currency"),
-      summaryItem("With LPO", rows.filter((row) => row.lpo_number).length),
+      summaryItem("Line items", rows.length),
+      summaryItem("Purchase documents", documentCount),
+      summaryItem("Order value", rows.reduce((sum, row) => sum + number(row.line_total), 0), "currency"),
+      summaryItem("With LPO", new Set(rows.filter((row) => row.lpo_number).map((row) => row.order_number)).size),
     ],
     columns: [
-      { key: "order_number", header: "PO" },
-      { key: "lpo_number", header: "LPO" },
-      { key: "supplier_name", header: "Supplier" },
-      { key: "order_date", header: "Order Date", format: "date" },
-      { key: "expected_delivery_date", header: "Expected", format: "date" },
-      { key: "purchase_type", header: "Type" },
-      { key: "item_count", header: "Items", format: "number" },
-      { key: "status", header: "Status" },
-      { key: "total_amount", header: "Total", format: "currency" },
+      { key: "order_number", header: "PO", total: false },
+      { key: "lpo_number", header: "LPO", total: false },
+      { key: "supplier_name", header: "Supplier", total: false },
+      { key: "order_date", header: "Order Date", format: "date", total: false },
+      { key: "expected_delivery_date", header: "Expected", format: "date", total: false },
+      { key: "purchase_type", header: "Type", total: false },
+      { key: "product_name", header: "Item", total: false },
+      { key: "quantity_ordered", header: "Qty", format: "number" },
+      { key: "unit_cost", header: "Unit cost", format: "currency", total: false },
+      { key: "line_total", header: "Line total", format: "currency" },
+      { key: "status", header: "Status", total: false },
+    ],
+    columnsPdf: [
+      { key: "order_number", header: "PO", total: false },
+      { key: "lpo_number", header: "LPO", total: false },
+      { key: "supplier_name", header: "Supplier", total: false },
+      { key: "order_date", header: "Date", format: "date", total: false },
+      { key: "product_name", header: "Item", total: false },
+      { key: "quantity_ordered", header: "Qty", format: "number" },
+      { key: "unit_cost", header: "Unit cost", format: "currency", total: false },
+      { key: "line_total", header: "Line total", format: "currency" },
+      { key: "status", header: "Status", total: false },
     ],
     rows,
   };
@@ -576,17 +593,26 @@ async function fetchCashRequisitionsReport(db, range) {
       ),
     ],
     columns: [
-      { key: "requisition_number", header: "CRQ" },
-      { key: "request_date", header: "Request Date", format: "date" },
-      { key: "department_name", header: "Department" },
-      { key: "payee_name", header: "Payee" },
-      { key: "purpose", header: "Purpose" },
+      { key: "requisition_number", header: "CRQ", total: false },
+      { key: "request_date", header: "Request Date", format: "date", total: false },
+      { key: "department_name", header: "Department", total: false },
+      { key: "payee_name", header: "Payee", total: false },
+      { key: "purpose", header: "Purpose", total: false },
       { key: "amount", header: "Requested", format: "currency" },
-      { key: "status", header: "Status" },
-      { key: "release_payment_method", header: "Release Method" },
-      { key: "settlement_date", header: "Settled", format: "date" },
+      { key: "status", header: "Status", total: false },
+      { key: "release_payment_method", header: "Release Method", total: false },
+      { key: "settlement_date", header: "Settled", format: "date", total: false },
       { key: "actual_spent_amount", header: "Spent", format: "currency" },
       { key: "cash_returned_amount", header: "Returned", format: "currency" },
+      { key: "variance_amount", header: "Variance", format: "currency" },
+    ],
+    columnsPdf: [
+      { key: "requisition_number", header: "CRQ", total: false },
+      { key: "request_date", header: "Date", format: "date", total: false },
+      { key: "payee_name", header: "Payee", total: false },
+      { key: "amount", header: "Requested", format: "currency" },
+      { key: "status", header: "Status", total: false },
+      { key: "actual_spent_amount", header: "Spent", format: "currency" },
       { key: "variance_amount", header: "Variance", format: "currency" },
     ],
     rows,
@@ -603,15 +629,16 @@ async function fetchAllPurchasesReport(db, range) {
          po.order_number AS secondary_reference,
          po.order_date AS purchase_date,
          s.name AS party_name,
-         COALESCE(po.purchase_type, 'Purchase order') AS purpose,
-         COALESCE(SUM(poi.line_total), 0) AS amount,
+         p.name AS purpose,
+         poi.quantity_ordered AS quantity,
+         poi.line_total AS amount,
          po.status,
          'UGX'::text AS currency_code
-       FROM purchase_orders po
+       FROM purchase_order_items poi
+       INNER JOIN purchase_orders po ON po.id = poi.purchase_order_id
        INNER JOIN suppliers s ON s.id = po.supplier_id
-       LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id
+       INNER JOIN products p ON p.id = poi.product_id
        WHERE po.order_date BETWEEN ? AND ?
-       GROUP BY po.id, s.name
 
        UNION ALL
 
@@ -622,6 +649,7 @@ async function fetchAllPurchasesReport(db, range) {
          cr.request_date AS purchase_date,
          COALESCE(cr.payee_name, 'Cash payee') AS party_name,
          cr.purpose,
+         NULL::numeric AS quantity,
          COALESCE(crs.actual_spent_amount, cr.amount) AS amount,
          cr.status,
          cr.currency_code
@@ -641,19 +669,29 @@ async function fetchAllPurchasesReport(db, range) {
     title: "All Purchases",
     period: range,
     summary: [
-      summaryItem("All purchases", rows.length),
+      summaryItem("All lines", rows.length),
       summaryItem("From LPO / PO", lpoRows.length),
       summaryItem("From cash requisitions", cashRows.length),
       summaryItem("Total value", rows.reduce((sum, row) => sum + number(row.amount), 0), "currency"),
     ],
     columns: [
-      { key: "source", header: "Source" },
-      { key: "reference", header: "Reference" },
-      { key: "secondary_reference", header: "PO" },
-      { key: "purchase_date", header: "Date", format: "date" },
-      { key: "party_name", header: "Supplier / Payee" },
-      { key: "purpose", header: "Purpose / Type" },
-      { key: "status", header: "Status" },
+      { key: "source", header: "Source", total: false },
+      { key: "reference", header: "Reference", total: false },
+      { key: "secondary_reference", header: "PO", total: false },
+      { key: "purchase_date", header: "Date", format: "date", total: false },
+      { key: "party_name", header: "Supplier / Payee", total: false },
+      { key: "purpose", header: "Item / Purpose", total: false },
+      { key: "quantity", header: "Qty", format: "number" },
+      { key: "status", header: "Status", total: false },
+      { key: "amount", header: "Amount", format: "currency" },
+    ],
+    columnsPdf: [
+      { key: "source", header: "Source", total: false },
+      { key: "reference", header: "Reference", total: false },
+      { key: "purchase_date", header: "Date", format: "date", total: false },
+      { key: "party_name", header: "Supplier / Payee", total: false },
+      { key: "purpose", header: "Item / Purpose", total: false },
+      { key: "status", header: "Status", total: false },
       { key: "amount", header: "Amount", format: "currency" },
     ],
     rows,
@@ -727,15 +765,24 @@ async function fetchFinanceReport(db, range) {
       summaryItem("Overdue invoices", overdue),
     ],
     columns: [
-      { key: "invoice_number", header: "Invoice" },
-      { key: "supplier_name", header: "Supplier" },
-      { key: "invoice_date", header: "Invoice Date", format: "date" },
-      { key: "due_date", header: "Due", format: "date" },
+      { key: "invoice_number", header: "Invoice", total: false },
+      { key: "supplier_name", header: "Supplier", total: false },
+      { key: "invoice_date", header: "Invoice Date", format: "date", total: false },
+      { key: "due_date", header: "Due", format: "date", total: false },
       { key: "total_amount", header: "Total", format: "currency" },
       { key: "amount_paid", header: "Paid", format: "currency" },
       { key: "balance", header: "Balance", format: "currency" },
-      { key: "aging_bucket", header: "Aging" },
-      { key: "payment_status", header: "Payment" },
+      { key: "aging_bucket", header: "Aging", total: false },
+      { key: "payment_status", header: "Payment", total: false },
+    ],
+    columnsPdf: [
+      { key: "invoice_number", header: "Invoice", total: false },
+      { key: "supplier_name", header: "Supplier", total: false },
+      { key: "due_date", header: "Due", format: "date", total: false },
+      { key: "total_amount", header: "Total", format: "currency" },
+      { key: "balance", header: "Balance", format: "currency" },
+      { key: "aging_bucket", header: "Aging", total: false },
+      { key: "payment_status", header: "Payment", total: false },
     ],
     rows,
   };
@@ -808,12 +855,20 @@ async function fetchKitchenReport(db, range) {
       { key: "requisition_number", header: "KR" },
       { key: "department_name", header: "Kitchen" },
       { key: "requested_by_name", header: "Requested By" },
-      { key: "request_date", header: "Requested", format: "date" },
+      { key: "request_date", header: "Requested On", format: "date", total: false },
       { key: "production_date", header: "Production", format: "date" },
-      { key: "item_count", header: "Items", format: "number" },
-      { key: "requested_quantity", header: "Requested", format: "number" },
+      { key: "item_count", header: "Items", format: "number", total: false },
+      { key: "requested_quantity", header: "Qty Requested", format: "number" },
       { key: "issued_quantity", header: "Issued", format: "number" },
-      { key: "status", header: "Status" },
+      { key: "status", header: "Status", total: false },
+    ],
+    columnsPdf: [
+      { key: "requisition_number", header: "KR", total: false },
+      { key: "department_name", header: "Kitchen", total: false },
+      { key: "request_date", header: "Requested On", format: "date", total: false },
+      { key: "requested_quantity", header: "Qty Requested", format: "number" },
+      { key: "issued_quantity", header: "Issued", format: "number" },
+      { key: "status", header: "Status", total: false },
     ],
     rows,
   };
@@ -870,14 +925,22 @@ async function fetchConsumptionReport(db, range) {
       summaryItem("Wasted", rows.reduce((sum, row) => sum + number(row.wastage_quantity), 0)),
     ],
     columns: [
-      { key: "product_name", header: "Product" },
+      { key: "product_name", header: "Product", total: false },
       { key: "purchased_quantity", header: "Purchased", format: "number" },
       { key: "issued_quantity", header: "Issued", format: "number" },
       { key: "returned_quantity", header: "Returned", format: "number" },
       { key: "wastage_quantity", header: "Wasted", format: "number" },
       { key: "consumed_quantity", header: "Consumed", format: "number" },
-      { key: "remaining_quantity", header: "Remaining", format: "number" },
-      { key: "wastage_rate", header: "Waste %", format: "percent" },
+      { key: "remaining_quantity", header: "Remaining", format: "number", total: false },
+      { key: "wastage_rate", header: "Waste %", format: "percent", total: false },
+    ],
+    columnsPdf: [
+      { key: "product_name", header: "Product", total: false },
+      { key: "purchased_quantity", header: "Purchased", format: "number" },
+      { key: "issued_quantity", header: "Issued", format: "number" },
+      { key: "wastage_quantity", header: "Wasted", format: "number" },
+      { key: "consumed_quantity", header: "Consumed", format: "number" },
+      { key: "wastage_rate", header: "Waste %", format: "percent", total: false },
     ],
     rows,
   };

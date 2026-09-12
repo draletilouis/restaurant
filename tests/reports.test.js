@@ -1,4 +1,4 @@
-const request = require("supertest");
+﻿const request = require("supertest");
 const { resetTestDatabase } = require("./helpers/test-db");
 const { buildReportHTML } = require("../src/services/report-html");
 const { getBusinessProfileHeader } = require("../src/services/branded-document");
@@ -65,8 +65,10 @@ describe("Reports and document exports", () => {
     expect(html).toContain("rpt-letterhead");
     expect(html).toContain("rpt-strip-title");
     expect(html).toContain("rpt-meta-bar");
-    expect(html).toContain("Report Period");
+    expect(html).toContain("Report period");
     expect(html).toContain("Generated:");
+    expect(html).toContain("rpt-kpi");
+    expect(html).toContain("Tracked balances");
     expect(html).not.toContain("Powered by Cater ERP");
     expect(html).not.toContain("Food Services Operations");
     expect(html).not.toContain("Confidential");
